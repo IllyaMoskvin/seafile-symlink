@@ -162,9 +162,9 @@ foreach ($linkPath in $linkPaths) {
 # Add suffix to prefix with trailing newline
 $siContentNew = $siPrefix + $siSuffix + ''
 
-# Check if there were any changes
+# Check if seafile-ignore.txt was empty of if there were any changes
 # https://stackoverflow.com/questions/9598173/comparing-array-variables-in-powershell
-$hasChanged = @(Compare-Object $siContent $siContentNew -SyncWindow 0).Length -gt 0
+$hasChanged = !$siContent -or @(Compare-Object $siContent $siContentNew -SyncWindow 0).Length -gt 0
 
 If( $hasChanged ) {
     $output = $siContentNew -Join "`n"
