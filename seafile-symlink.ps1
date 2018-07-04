@@ -35,10 +35,10 @@ Function GetSeafileIgnoreFile {
 Function GetSymbolicLinks([string]$dir) {
 
     # Get symbolic links located directly within this directory
-    $links = Get-ChildItem -Path $dir -Attributes ReparsePoint | % { $_.FullName }
+    $links = @( Get-ChildItem -Path $dir -Attributes ReparsePoint | % { $_.FullName } )
 
     # Get all subdirectories, excluding symbolic links
-    $subdirs = Get-ChildItem -Path $dir -Attributes Directory+!ReparsePoint | % { $_.FullName }
+    $subdirs = @( Get-ChildItem -Path $dir -Attributes Directory+!ReparsePoint | % { $_.FullName } )
 
     # Call this function on each subdirectory and append the result
     foreach( $subdir in $subdirs ) {
@@ -51,10 +51,10 @@ Function GetSymbolicLinks([string]$dir) {
 Function GetSymbolicPlaceholders([string]$dir) {
 
     # Get placeholders located directly within this directory
-    $placeholders = Get-ChildItem -Path "$dir\*.$symExt" | % { $_.FullName }
+    $placeholders = @( Get-ChildItem -Path "$dir\*.$symExt" | % { $_.FullName } )
 
     # Get all subdirectories, excluding symbolic links
-    $subdirs = Get-ChildItem -Path $dir -Attributes Directory+!ReparsePoint | % { $_.FullName }
+    $subdirs = @( Get-ChildItem -Path $dir -Attributes Directory+!ReparsePoint | % { $_.FullName } )
 
     # Call this function on each subdirectory and append the result
     foreach( $subdir in $subdirs ) {
