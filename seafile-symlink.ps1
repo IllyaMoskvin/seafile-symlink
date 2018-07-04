@@ -91,7 +91,6 @@ foreach( $phPath in $phPaths ) {
 
     $content = Get-Content $placeholder
     $destPath = $content[0]
-    $destType = $content[1] # TODO: This seems unneeded?
 
     $linkPath = $phPath.TrimEnd( $symExt )
 
@@ -130,7 +129,6 @@ foreach ($linkPath in $linkPaths) {
 
     # Check if the link refers to a directory or a file
     $destIsDir = (Get-Item -Path $destPathAbs) -is [System.IO.DirectoryInfo]
-    $destType = If ($destIsDir) { 'DIR' } else { 'FILE' } # TODO: Unneeded?
 
     # Determine the relative path from library root to the symlink for ignoring
     $linkIgnorePath = GetRelativePath $rootPath $linkPathAbs
@@ -152,8 +150,7 @@ foreach ($linkPath in $linkPaths) {
 
     # Create a symlink placeholder file
     $phName = $link.Name + '.' + $symExt
-    $phValue = $destPath + "`n" + $destType
-    $phFile = New-Item -Path $linkParentPathAbs -Name $phName -Type "file" -Value $phValue -Force
+    $phFile = New-Item -Path $linkParentPathAbs -Name $phName -Type "file" -Value $destPath -Force
 
     Write-Host "Created placeholder: `"$phFile`" >>> `"$destPath`""
 
