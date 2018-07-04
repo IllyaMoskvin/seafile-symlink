@@ -89,9 +89,8 @@ foreach( $phPath in $phPaths ) {
 
     $placeholder = Get-Item -Path $phPath
 
-    $content = Get-Content $placeholder
-    $destPath = $content[0]
-
+    # Assumes file w/ single line, no empty trailing ones
+    $destPath = Get-Content $placeholder
     $linkPath = $phPath.TrimEnd( $symExt )
 
     # We need to enter the folder where the symlink will be located for relative paths to resolve
