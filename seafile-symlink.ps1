@@ -170,6 +170,19 @@ function Get-SymbolicLinkData ([string]$LibraryPath) {
 }
 
 
+# Helper to de-duplicate records returned by Get-FoobarData functions.
+# https://stackoverflow.com/questions/14332930/how-to-get-unique-value-from-an-array-of-hashtable-in-powershell
+function Get-UniqueData ($HashtableArray) {
+    $HashtableArray | Select-Object @{
+        Expression = { "$($_.Keys):$($_.Values)" }
+        Label ="AsString"
+    }, @{
+        Expression ={$_}
+        Label = "Hash"
+    } -Unique | Select-Object -ExpandProperty Hash
+}
+
+
 # Helper to return the directory within which the symlink should be located.
 function Get-LinkParentPath ([string]$LinkPath) {
     if (![System.IO.Path]::IsPathRooted($LinkPath)) {
@@ -329,7 +342,9 @@ $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 $data = @()
 $data += Get-PlaceholderData $LibraryPath $PlaceholderExt
 $data += Get-SymbolicLinkData $LibraryPath
-# TODO: De-dupe the data
+
+# TODO: Normalize the data before de-duping it?
+$data = Get-UniqueData $data
 
 $ignorePaths = @()
 
