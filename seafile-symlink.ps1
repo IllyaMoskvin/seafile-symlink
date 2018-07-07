@@ -33,39 +33,66 @@ function Get-SeafileIgnoreFile {
 }
 
 
-# This should detect SymbolicLinks, but not HardLinks or Junctures (intentionally)
-# https://stackoverflow.com/questions/817794/find-out-whether-a-file-is-a-symbolic-link-in-powershell
-function Get-SymbolicLinks ([string]$DirPath) {
-
-    # Get symbolic links located directly within this directory
-    $links = @(Get-ChildItem -Path $DirPath -Attributes ReparsePoint | ForEach-Object { $_.FullName })
-
-    # Get all subdirectories, excluding symbolic links
-    $subdirs = @(Get-ChildItem -Path $DirPath -Attributes Directory+!ReparsePoint)
-
-    # Call this function on each subdirectory and append the result
-    foreach ($subdir in $subdirs) {
-        $links += Get-SymbolicLinks $subdir.FullName
+# Convert an array into a hastable, with every two array members forming a name-value pair.
+# https://stackoverflow.com/questions/27764394/get-valuefromremainingarguments-as-an-hashtable
+function Get-ParamHash {
+    param (
+        [string[]]
+        $ParamArray
+    )
+    process {
+        $ParamHash = @{}
+        for ($i = 0; $i -lt $ParamArray.count; $i+=2) {
+            $ParamHash[($ParamArray[$i] -replace '^-+' -replace ':$')] = $ParamArray[$i+1]
+        }
+        $ParamHash
     }
-
-    @($links | Where-Object { $_ })  # Remove empty items
 }
 
 
-Function Get-SymbolicPlaceholders ([string]$DirPath) {
+# Helper to find files recursively within a given directory.
+# Accepts the same named params as `Get-ChildItem`... except maybe `Path`?
+# The cucial difference vs. `Get-ChildItem` is that this doesn't follow symlinks.
+# First positional param is the path to the directory within which to search.
+function Get-SymbolicPaths {
+    param (
+        [string]
+        $DirPath,
 
-    # Get placeholders located directly within this directory
-    $placeholders = @(Get-ChildItem -Path "$DirPath\*.$symExt" | ForEach-Object { $_.FullName })
+        [parameter(ValueFromRemainingArguments=$true)]
+        [string[]]
+        $ParamArray
+    )
+    process {
+        # Convert param list to hash
+        $params = Get-ParamHash $ParamArray
 
-    # Get all subdirectories, excluding symbolic links
-    $subdirs = @(Get-ChildItem -Path $DirPath -Attributes Directory+!ReparsePoint)
+        # Get symbolic links located directly within this directory
+        $links = @(Get-ChildItem -Path "$DirPath\*" @params | ForEach-Object { $_.FullName })
 
-    # Call this function on each subdirectory and append the result
-    foreach ($subdir in $subdirs) {
-        $placeholders += Get-SymbolicPlaceholders $subdir.FullName
+        # Get all subdirectories, excluding symbolic links
+        $subdirs = @(Get-ChildItem -Path $DirPath -Attributes Directory+!ReparsePoint)
+
+        # Call this function on each subdirectory and append the result
+        foreach ($subdir in $subdirs) {
+            $links += Get-SymbolicPaths $subdir.FullName @params
+        }
+
+        @($links | Where-Object { $_ })  # Remove empty items
     }
+}
 
-    @($placeholders | Where-Object { $_ })  # Remove empty items
+
+# This should detect SymbolicLinks, but not HardLinks or Junctures (intentionally)
+# https://stackoverflow.com/questions/817794/find-out-whether-a-file-is-a-symbolic-link-in-powershell
+function Get-SymbolicLinks ([string]$DirPath) {
+    Get-SymbolicPaths $DirPath -Attributes ReparsePoint
+}
+
+
+# Find placeholder files recursively, returning their paths.
+Function Get-SymbolicPlaceholders ([string]$DirPath) {
+    Get-SymbolicPaths $DirPath -Include "*.$symExt"
 }
 
 
