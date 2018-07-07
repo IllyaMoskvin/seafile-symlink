@@ -432,8 +432,18 @@ $Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
 # Create actual symlinks from data
 $Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
 
-# Create placeholders from data
-$Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+# Persist symlink data for syncing using specified StorageMethod
+Write-Host 'Using StorageMethod:' $Config['StorageMethod']
+
+switch ($config['StorageMethod']) {
+    'placeholder' {
+        $Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+    }
+    'database' {
+        # TODO: Implement this!
+        Write-Host 'Database syncing is not yet implemented'
+    }
+}
 
 # Gather symlink paths to ignore
 $IgnorePaths = $Data | ForEach-Object {
