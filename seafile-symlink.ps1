@@ -169,6 +169,22 @@ function Get-NormalizedPath ([string]$Path) {
 }
 
 
+# Given a potentially Unix-style path, convert it to Windows-style.
+function Get-LocalizedPath ([string]$Path) {
+    if ($Path -notmatch '^[A-Za-z]:') {
+        if ($Path.StartsWith('/')) {
+            $Path = $Path.TrimStart('/')
+            $Path = $Path -replace '^([A-Za-z])/', '$1:/'
+        } elseif (-not $Path.StartsWith('..')) {
+            $Path = './' + $Path
+        }
+    }
+    $Path = $Path.Replace('/','\')
+    $Path
+}
+
+
+
 # Helper to normalize a potentially relative path to absolute.
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
@@ -223,6 +239,17 @@ function Get-SymbolicLinkRawData ([string]$LibraryPath) {
 }
 
 
+# Convert normalized (Unix) paths in raw data to Windows conventions.
+function Get-LocalizedData ($Data) {
+    $Data | ForEach-Object {
+        @{
+            DestPath = Get-LocalizedPath $_.DestPath
+            LinkPath = Get-LocalizedPath $_.LinkPath
+        }
+    }
+}
+
+
 # Normalizes all symlink target paths in $Data to absolute.
 function Get-AbsoluteData ($Data) {
     $Data | ForEach-Object {
@@ -254,6 +281,7 @@ function Get-Data ([string]$LibraryPath, [string]$PlaceholderExt) {
     $data += Get-DatabaseRawData $LibraryPath
     $data += Get-SymbolicLinkRawData $LibraryPath
 
+    $data = Get-LocalizedData $data
     $data = Get-AbsoluteData $data
     $data = Get-UniqueData $data
 
