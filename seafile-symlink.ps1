@@ -230,6 +230,9 @@ $siPrefix = $siContent.Where({ $_ -Like $ignoreNeedle }, 'Until')
 # Create the suffix header
 $siSuffix = @($ignoreNeedle, $ignoreWarning)
 
+# Append the ignore paths to our suffix
+$siSuffix += $linkIgnorePaths
+
 # Ensure that a newline precedes the suffix
 if (![string]::IsNullOrEmpty($siPrefix[-1])) {
     $siPrefix += ''
