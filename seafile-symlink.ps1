@@ -1,6 +1,14 @@
 #Requires -Version 5
 # https://github.com/haiwen/seafile/issues/288
 
+# Specify -Preset as a param when calling this script to use custom ini files.
+# Ex: `.\seafile-symlink.ps1 -Preset Custom` to use `.\presets\custom.ini`
+# Params are capitalization-agnostic so `-preset custom` would work just as well.
+param(
+    [string]
+    $Preset='default'
+)
+
 # Read INI file into hashtable. Adapted from these examples:
 # https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/
 # https://serverfault.com/questions/186030/how-to-use-a-config-file-ini-conf-with-a-powershell-script-is-it-possib
@@ -121,8 +129,7 @@ function Get-SeafileIgnoreFile ([string]$RootPath) {
 }
 
 
-# TODO: Accept -Preset parameter via commandline
-$Preset = 'default'
+# Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
 # Modify this if the script isn't in the root of a Seafile library
