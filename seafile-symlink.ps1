@@ -118,12 +118,17 @@ function Test-IsDirectory ([string]$Path) {
 }
 
 
-# Helper function for retrieving one path relative to another
-function Get-RelativePath ([string]$Path, [string]$DirPath) {
+function Assert-IsDirectory ([string]$DirPath, [string]$Method) {
     if (!(Test-IsDirectory $DirPath)) {
-        Write-Host "Get-RelativePath expects DirPath to be a directory."
+        Write-Host "$Method expects DirPath to be a directory."
         exit 1
     }
+}
+
+
+# Helper function for retrieving one path relative to another
+function Get-RelativePath ([string]$Path, [string]$DirPath) {
+    Assert-IsDirectory $DirPath $MyInvocation.MyCommand
     Push-Location -Path $DirPath
     $out = Resolve-Path -Relative $Path
     Pop-Location
@@ -135,10 +140,7 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
 function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
-    if (!(Test-IsDirectory $DirPath)) {
-        Write-Host "Get-AbsolutePath expects DirPath to be a directory."
-        exit 1
-    }
+    Assert-IsDirectory $DirPath $MyInvocation.MyCommand
     if (![System.IO.Path]::IsPathRooted($Path)) {
         $Path = Join-Path ($DirPath) $Path
         $Path = [System.IO.Path]::GetFullPath($Path)
