@@ -479,8 +479,10 @@ function Write-DatabaseFile ($Data, [string]$LibraryPath) {
 
 function Remove-DatabaseFile ([string]$LibraryPath) {
     $databasePath = Get-DatabasePath $LibraryPath
-    Remove-Item -Path $databasePath
-    Write-Host "Removed database: `"$databasePath`""
+    if (Test-Path $databasePath) {
+        Remove-Item -Path $databasePath
+        Write-Host "Removed database: `"$databasePath`""
+    }
 }
 
 
