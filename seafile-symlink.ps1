@@ -119,9 +119,13 @@ function Test-IsDirectory ([string]$Path) {
 
 
 # Helper function for retrieving one path relative to another
-function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
-    Push-Location -Path $PathFrom
-    $out = Resolve-Path -Relative $PathTo
+function Get-RelativePath ([string]$Path, [string]$DirPath) {
+    if (!(Test-IsDirectory $DirPath)) {
+        Write-Host "Get-RelativePath expects DirPath to be a directory."
+        exit 1
+    }
+    Push-Location -Path $DirPath
+    $out = Resolve-Path -Relative $Path
     Pop-Location
     $out
 }
@@ -170,7 +174,7 @@ function Get-SymbolicLinkData ([string]$LibraryPath) {
         # If the path falls below the library root, keep it absolute, else make it relative
         # TODO: Make this a setting? Esp. how to treat paths on the same drive?
         if ($destPath.StartsWith($LibraryPath)) {
-            $destPath = Get-RelativePath $linkParentPath $destPath
+            $destPath = Get-RelativePath $destPath $linkParentPath
         }
 
         @{
@@ -185,7 +189,7 @@ function Get-SymbolicLinkData ([string]$LibraryPath) {
 # Returns a `seafile-ignore.txt` line that will cause Seafile to ignore the symlink.
 function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     # Determine the relative path from library root to the symlink for ignoring
-    $ignorePath = Get-RelativePath $LibraryPath $LinkPath
+    $ignorePath = Get-RelativePath $LinkPath $LibraryPath
     $ignorePath = $ignorePath.TrimStart('.\')
     $ignorePath = $ignorePath.Replace('\','/')
 
