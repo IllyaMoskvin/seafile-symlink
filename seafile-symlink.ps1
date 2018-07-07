@@ -108,7 +108,7 @@ function Get-SymbolicLinks ([string]$DirPath) {
 
 # Find placeholder files recursively, returning their paths.
 function Get-SymbolicPlaceholders ([string]$DirPath, [string]$PlaceholderExt) {
-    Get-SymbolicPaths $DirPath -Include "*.$PlaceholderExt"
+    Get-SymbolicPaths $DirPath -Include "*$PlaceholderExt"
 }
 
 
@@ -221,8 +221,8 @@ $Config = Get-Config $Preset
 # Modify this via ini if the script isn't in a subfolder of a Seafile library
 $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 
-# Extension to use for symlink placeholders
-$PlaceholderExt = $Config['PlaceholderExt']
+# Extension to use for symlink placeholders, with leading period
+$PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
 # Look for symlink placeholder files, and create symlinks from them
 $phPaths = Get-SymbolicPlaceholders $LibraryPath $PlaceholderExt
@@ -272,7 +272,7 @@ foreach ($linkPath in $linkPaths) {
     }
 
     # Create a symlink placeholder file
-    $phName = (Split-Path -Path $linkPath -Leaf) + '.' + $PlaceholderExt
+    $phName = (Split-Path -Path $linkPath -Leaf) + $PlaceholderExt
     $phFile = New-Item -Path $linkParentPath -Name $phName -Type "file" -Value $destPath -Force
 
     Write-Host "Created placeholder: `"$phFile`" >>> `"$destPath`""
