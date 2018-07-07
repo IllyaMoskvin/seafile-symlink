@@ -121,6 +121,20 @@ function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
 }
 
 
+function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
+    # We need to enter the folder where the symlink will be located for any relative paths to resolve
+    Push-Location -Path (Split-Path $LinkPath -Parent)
+
+    # https://stackoverflow.com/questions/894430/creating-hard-and-soft-links-using-powershell
+    New-Item -Path $LinkPath -ItemType SymbolicLink -Value $DestPath -Force | Out-Null
+
+    # Restore our working directory
+    Pop-Location
+
+    Write-Host "Created symlink: `"$LinkPath`" >>> `"$DestPath`""
+}
+
+
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
     $ignorePath = "$LibraryPath\seafile-ignore.txt"
@@ -201,16 +215,7 @@ foreach ($phPath in $phPaths) {
     $destPath = Get-Content $placeholder
     $linkPath = $phPath.TrimEnd($PlaceholderExt)
 
-    # We need to enter the folder where the symlink will be located for relative paths to resolve
-    Push-Location -Path (Split-Path $linkPath -Parent)
-
-    # https://stackoverflow.com/questions/894430/creating-hard-and-soft-links-using-powershell
-    $link = New-Item -Path $linkPath -ItemType SymbolicLink -Value $destPath -Force
-
-    # Restore our working directory
-    Pop-Location
-
-    Write-Host "Created symlink: `"$linkPath`" >>> `"$destPath`""
+    New-SymbolicLink $linkPath $destPath
 
 }
 
