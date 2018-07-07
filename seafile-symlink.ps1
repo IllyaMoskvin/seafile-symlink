@@ -56,7 +56,7 @@ function Get-Config ([string]$Preset) {
     $config['LibraryPath'] = Get-AbsolutePath $config['LibraryPath'] $PSScriptRoot
 
     # Ensure that LibraryPath points to a directory
-    Assert-IsDirectory $config['LibraryPath'] $MyInvocation.MyCommand 'LibraryPath'
+    Assert-IsDirectory $config['LibraryPath'] 'LibraryPath'
 
     # Extension to use for symlink placeholders, with leading period
     $config['PlaceholderExt'] = $config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
@@ -127,9 +127,10 @@ function Test-IsDirectory ([string]$Path) {
 }
 
 
-function Assert-IsDirectory ([string]$DirPath, [string]$Method, [string]$Param) {
+function Assert-IsDirectory ([string]$DirPath, [string]$Param) {
     if (!(Test-IsDirectory $DirPath)) {
-        Write-Host "$Method expects $Param to be a directory."
+        $method = (Get-PSCallStack)[1].Command
+        Write-Host "$method expects $Param to be a directory."
         exit 1
     }
 }
@@ -137,7 +138,7 @@ function Assert-IsDirectory ([string]$DirPath, [string]$Method, [string]$Param) 
 
 # Helper function for retrieving one path relative to another
 function Get-RelativePath ([string]$Path, [string]$DirPath) {
-    Assert-IsDirectory $DirPath $MyInvocation.MyCommand 'DirPath'
+    Assert-IsDirectory $DirPath 'DirPath'
     Push-Location -Path $DirPath
     $out = Resolve-Path -Relative $Path
     Pop-Location
@@ -149,7 +150,7 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
 function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
-    Assert-IsDirectory $DirPath $MyInvocation.MyCommand 'DirPath'
+    Assert-IsDirectory $DirPath 'DirPath'
     if (![System.IO.Path]::IsPathRooted($Path)) {
         $Path = Join-Path ($DirPath) $Path
         $Path = [System.IO.Path]::GetFullPath($Path)
