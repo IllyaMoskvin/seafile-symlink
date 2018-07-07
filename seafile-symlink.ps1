@@ -4,18 +4,12 @@
 
 # Convert an array into a hastable, with every two array members forming a name-value pair.
 # https://stackoverflow.com/questions/27764394/get-valuefromremainingarguments-as-an-hashtable
-function Get-ParamHash {
-    param (
-        [string[]]
-        $ParamArray
-    )
-    process {
-        $ParamHash = @{}
-        for ($i = 0; $i -lt $ParamArray.count; $i+=2) {
-            $ParamHash[($ParamArray[$i] -replace '^-+' -replace ':$')] = $ParamArray[$i+1]
-        }
-        $ParamHash
+function Get-ParamHash ([string[]]$ParamArray) {
+    $ParamHash = @{}
+    for ($i = 0; $i -lt $ParamArray.count; $i+=2) {
+        $ParamHash[($ParamArray[$i] -replace '^-+' -replace ':$')] = $ParamArray[$i+1]
     }
+    $ParamHash
 }
 
 
