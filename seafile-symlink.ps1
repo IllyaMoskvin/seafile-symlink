@@ -155,6 +155,32 @@ function Get-PlaceholderData ([string]$LibraryPath, [string]$PlaceholderExt) {
 }
 
 
+# Generates {link, dest} pairs from symlinks in library.
+function Get-SymbolicLinkData ([string]$LibraryPath) {
+    Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
+        # The symlink target can be absolute or relative
+        $destPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
+
+        # Get the directory in which the symlink is located
+        $linkParentPath = Split-Path $_ -Parent
+
+        # Normalize the target path if it's actually relative
+        $destPath = Get-AbsolutePath $destPath $linkParentPath
+
+        # If the path falls below the library root, keep it absolute, else make it relative
+        # TODO: Make this a setting? Esp. how to treat paths on the same drive?
+        if ($destPath.StartsWith($LibraryPath)) {
+            $destPath = Get-RelativePath $linkParentPath $destPath
+        }
+
+        @{
+            'dest' = $destPath
+            'link' = $_
+        }
+    }
+}
+
+
 # Expects absolute paths to a symlink, its target, and the Seafile library.
 # Returns a `seafile-ignore.txt` line that will cause Seafile to ignore the symlink.
 function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
@@ -268,37 +294,19 @@ $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
 # Create symbolic links from placeholders
-$data = Get-PlaceholderData $LibraryPath $PlaceholderExt
+$data = @()
+$data += Get-PlaceholderData $LibraryPath $PlaceholderExt
+$data += Get-SymbolicLinkData $LibraryPath
 
-foreach ($datum in $data) {
-    New-SymbolicLink $datum['link'] $datum['dest']
-}
-
-$linkPaths = Get-SymbolicLinkPaths $LibraryPath
 $ignorePaths = @()
 
-# Let's work with absolute paths for ease of comparison
-foreach ($linkPath in $linkPaths) {
+foreach ($datum in $data) {
 
-    # The symlink target can be absolute or relative
-    $destPath = Get-Item -Path $linkPath | Select-Object -ExpandProperty Target
+    $ignorePaths += Get-SymbolicLinkIgnorePath $datum['link'] $datum['dest'] $LibraryPath
 
-    # Get the directory in which the symlink is located
-    $linkParentPath = Split-Path $linkPath -Parent
+    New-SymbolicLink $datum['link'] $datum['dest']
 
-    # Normalize the target path if it's actually relative
-    $destPath = Get-AbsolutePath $destPath $linkParentPath
-
-    $ignorePaths += Get-SymbolicLinkIgnorePath $linkPath $destPath $LibraryPath
-
-    # If the path falls below the library root, keep it absolute, else make it relative
-    # TODO: Make this a setting? Esp. how to treat paths on the same drive?
-    if ($destPath.StartsWith($LibraryPath)) {
-        $destPath = Get-RelativePath $linkParentPath $destPath
-    }
-
-    New-Placeholder $linkPath $destPath $PlaceholderExt
-
+    New-Placeholder $datum['link'] $datum['dest'] $PlaceholderExt
 }
 
 Write-SeafileIgnoreFile $LibraryPath $ignorePaths
