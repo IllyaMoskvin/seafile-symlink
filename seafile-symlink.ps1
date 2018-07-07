@@ -154,8 +154,8 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
     Get-PlaceholderPaths $LibraryPath $PlaceholderExt | ForEach-Object {
         @{
             # Assumes file w/ single line, no empty trailing ones
-            'dest' = Get-Content -Path $_
-            'link' = $_.TrimEnd($PlaceholderExt)
+            DestPath = Get-Content -Path $_
+            LinkPath = $_.TrimEnd($PlaceholderExt)
         }
     }
 }
@@ -165,8 +165,8 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
 function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
         @{
-            'dest' = Get-Item -Path $_ | Select-Object -ExpandProperty Target
-            'link' = $_
+            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
+            LinkPath = $_
         }
     }
 }
@@ -176,8 +176,8 @@ function Get-SymbolicLinkRawData ([string]$LibraryPath) {
 function Get-AbsoluteData ($Data) {
     $Data | ForEach-Object {
         @{
-            'dest' = Get-AbsoluteDestPath $_.link $_.dest
-            'link' = $_.link
+            DestPath = Get-AbsoluteDestPath $_.LinkPath $_.DestPath
+            LinkPath = $_.LinkPath
         }
     }
 }
@@ -363,10 +363,10 @@ $ignorePaths = @()
 
 foreach ($datum in $data) {
 
-    $ignorePaths += Get-SymbolicLinkIgnorePath $datum['link'] $datum['dest'] $LibraryPath
+    $ignorePaths += Get-SymbolicLinkIgnorePath @datum $LibraryPath
 
-    New-Placeholder $datum['link'] $datum['dest'] $PlaceholderExt
-    New-SymbolicLink $datum['link'] $datum['dest'] $LibraryPath
+    New-Placeholder @datum $PlaceholderExt
+    New-SymbolicLink @datum $LibraryPath
 
 }
 
