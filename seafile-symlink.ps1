@@ -313,6 +313,11 @@ function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$Placeho
 }
 
 
+function Get-DatabasePath ([string]$LibraryPath) {
+    $LibraryPath + '\seafile-symlink.txt'
+}
+
+
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
     $ignoreFilePath = "$LibraryPath\seafile-ignore.txt"
