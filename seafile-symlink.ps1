@@ -321,25 +321,28 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$Librar
 }
 
 
+# Given a symlink path, get a path to the corresponding placeholder with extension
+function Get-PlaceholderPath ([string]$LinkPath, [string]$PlaceholderExt) {
+    $dir = Get-LinkParentPath $LinkPath
+    $fname = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
+    "$dir\$fname"
+}
+
+
 # Create a symlink placeholder file.
 # TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
 function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
-    $dir = Get-LinkParentPath $LinkPath
-    $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
-    $file = New-Item -Path $dir -Name $name -Type "file" -Value $DestPath -Force
-
-    Write-Host "Created placeholder: `"$file`" >>> `"$DestPath`""
+    $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
+    New-Item -Path $placeholderPath -Type "file" -Value $DestPath -Force
+    Write-Host "Created placeholder: `"$placeholderPath`" >>> `"$DestPath`""
 }
 
 
 function Remove-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
-    $dir = Get-LinkParentPath $LinkPath
-    $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
-    $path = "$dir\$name"
-
-    if (Test-Path $path) {
-        Remove-Item -Path "$dir\$name"
-        Write-Host "Removed placeholder: `"$path`""
+    $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
+    if (Test-Path $placeholderPath) {
+        Remove-Item -Path $placeholderPath
+        Write-Host "Removed placeholder: `"$placeholderPath`""
     }
 }
 
