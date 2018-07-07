@@ -217,7 +217,7 @@ function Get-DatabaseRawData ([string]$LibraryPath) {
         Get-Content -Path $databasePath | Where-Object { $_ } | ForEach-Object {
             $line = $_ -Split ' >>> ', 2
             @{
-                LinkPath = $line[0]
+                LinkPath = $LibraryPath + '/' + $line[0]
                 DestPath = $line[1]
             }
         }
