@@ -423,6 +423,16 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 }
 
 
+# TODO: Actually make this write to file, duh.
+function Write-DatabaseFile ($Data, [string]$LibraryPath) {
+    $Data | ForEach-Object {
+        $linkPath = Get-RelativePath $_.LinkPath $LibraryPath
+        $destPath = Get-NormalizedDestPath $_.LinkPath $_.DestPath $LibraryPath
+        $linkPath + ' >>> ' + $destPath
+    }
+}
+
+
 function Remove-DatabaseFile ([string]$LibraryPath) {
     $databasePath = Get-DatabasePath $LibraryPath
     Remove-Item -Path $databasePath
@@ -448,8 +458,7 @@ switch ($config['StorageMethod']) {
         Remove-DatabaseFile $Config['LibraryPath']
     }
     'database' {
-        # TODO: Implement this!
-        Write-Host 'Database syncing is not yet implemented'
+        Write-DatabaseFile $Data $Config['LibraryPath']
     }
 }
 
