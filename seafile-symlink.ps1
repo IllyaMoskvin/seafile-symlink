@@ -429,10 +429,14 @@ function Add-TrailingNewline ([string[]]$Lines) {
 
 # Write to file in $Path only if there are changes in content
 function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$ContentOld) {
-
     # If $ContentOld was omitted ($null), try getting the file contents
-    if ($null -eq $ContentOld) {
+    # This can happen if the file is empty, or if the last param was omitted
+    if (($null -eq $ContentOld) -and (Test-Path $Path)) {
         $ContentOld = Get-Content $Path
+    }
+
+    if ($null -eq $ContentOld) {
+        Write-Host 'Empty:' $Path
     }
 
     # Check if the original file was empty of if there were any changes
@@ -492,7 +496,10 @@ function Write-DatabaseFile ($Data, [string]$LibraryPath) {
         $linkPath + ' >>> ' + $destPath
     }
 
-    Write-IfChanged (Get-DatabasePath $LibraryPath) $contentNew
+    # Create the database file if it doesn't exist
+    $database = Get-DatabaseFile $LibraryPath
+
+    Write-IfChanged ($database.FullName) $contentNew (Get-Content $database)
 }
 
 
