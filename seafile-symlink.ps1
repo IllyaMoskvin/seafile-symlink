@@ -180,6 +180,24 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
 }
 
 
+# Generates {link, dest} pairs from database text file in library.
+function Get-DatabaseRawData ([string]$LibraryPath) {
+    $databasePath = Get-DatabasePath $LibraryPath
+    if (Test-Path $databasePath) {
+        Get-Content -Path $databasePath | ForEach-Object {
+            $line = $_ -Split ' >>> ', 2
+            @{
+                DestPath = $line[1]
+                LinkPath = $line[0]
+            }
+        }
+    } else {
+        Write-Host 'No existing database file found for reference'
+        @()
+    }
+}
+
+
 # Generates {link, dest} pairs from symlinks in library.
 function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
@@ -219,6 +237,7 @@ function Get-UniqueData ($HashArray) {
 function Get-Data ([string]$LibraryPath, [string]$PlaceholderExt) {
     $data = @()
     $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
+    $data += Get-DatabaseRawData $LibraryPath
     $data += Get-SymbolicLinkRawData $LibraryPath
 
     $data = Get-AbsoluteData $data
@@ -381,7 +400,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
-# Gather symlink records from placeholders and actual symlinks
+# Gather symlink records from placeholders, pseudo-database, and actual symlinks
 $Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
 
 # Create actual symlinks from data
