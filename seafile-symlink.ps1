@@ -365,6 +365,19 @@ function Get-SeafileIgnoreFile ([string]$LibraryPath) {
 }
 
 
+# Returns System.IO.FileSystemInfo of seafile-symlink.txt, creating it if necessary
+function Get-DatabaseFile ([string]$LibraryPath) {
+    $databasePath = Get-DatabasePath $LibraryPath
+    if (Test-Path $databasePath) {
+        Write-Host "Found $databasePath"
+        Get-Item -Path $databasePath
+    } else {
+        Write-Host "Created $databasePath"
+        New-Item -Path $databasePath -Type "file"
+    }
+}
+
+
 # Used for padding output
 function Add-TrailingNewline ([string[]]$Lines) {
     if (($Lines.count -gt 0) -and (![string]::IsNullOrEmpty($Lines[-1]))) {
