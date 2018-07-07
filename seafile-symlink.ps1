@@ -38,7 +38,7 @@ function Get-IniContent ([string]$FilePath) {
 function Get-Config ([string]$Preset) {
     $config = Get-IniContent ($PSScriptRoot + '\presets\' + $Preset + '.ini')
 
-    $keys = @('LibraryPath', 'PlaceholderExt')
+    $keys = @('LibraryPath', 'StorageMethod', 'PlaceholderExt')
 
     foreach ($key in $keys) {
         if (!$config[$key]) {
@@ -58,7 +58,16 @@ function Get-Config ([string]$Preset) {
     # Ensure that LibraryPath points to a directory
     Assert-IsDirectory $config['LibraryPath'] 'LibraryPath'
 
-    # Extension to use for symlink placeholders, with leading period
+    # Ensure that the specified storage method is valid
+    $storageMethods = @('database','placeholder')
+
+    if (!($storageMethods -contains $config['StorageMethod'])) {
+        Write-Host 'Invalid StorageMethod:' $config['StorageMethod']
+        Write-Host 'Valid methods:' ($storageMethods -join ', ')
+        exit 1
+    }
+
+    # Extension to use for reading or writing symlink placeholders, with leading period
     $config['PlaceholderExt'] = $config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
     $config
