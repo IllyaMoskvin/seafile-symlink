@@ -465,15 +465,23 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 }
 
 
-# TODO: Actually make this write to file, duh.
 function Write-DatabaseFile ($Data, [string]$LibraryPath) {
-    $Data | ForEach-Object {
+
+    $content = $Data | ForEach-Object {
+        # Link paths should be relative to library root, target paths follow our business logic
         $linkPath = Get-RelativePath $_.LinkPath $LibraryPath
         $destPath = Get-BusinessDestPath $_.LinkPath $_.DestPath $LibraryPath
+
+        # Both paths should be stored normalized to Unix conventions
         $linkPath = Get-NormalizedPath ($linkPath)
         $destPath = Get-NormalizedPath ($destPath)
+
         $linkPath + ' >>> ' + $destPath
     }
+
+    $output = $content -Join "`n"
+
+    New-Item -Path (Get-DatabasePath $LibraryPath) -Type "file" -Value $output -Force | Out-Null
 }
 
 
