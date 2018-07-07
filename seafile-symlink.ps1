@@ -243,11 +243,8 @@ $ignorePaths = @()
 # Let's work with absolute paths for ease of comparison
 foreach ($linkPath in $linkPaths) {
 
-    # Used to get destination path + derive placeholder name
-    $link = Get-Item -Path $linkPath
-
     # The symlink target can be absolute or relative
-    $destPath = $link | Select-Object -ExpandProperty Target
+    $destPath = Get-Item -Path $linkPath | Select-Object -ExpandProperty Target
 
     # Get the directory in which the symlink is located
     $linkParentPath = Split-Path $linkPath -Parent
@@ -275,7 +272,7 @@ foreach ($linkPath in $linkPaths) {
     }
 
     # Create a symlink placeholder file
-    $phName = $link.Name + '.' + $PlaceholderExt
+    $phName = (Split-Path -Path $linkPath -Leaf) + '.' + $PlaceholderExt
     $phFile = New-Item -Path $linkParentPath -Name $phName -Type "file" -Value $destPath -Force
 
     Write-Host "Created placeholder: `"$phFile`" >>> `"$destPath`""
