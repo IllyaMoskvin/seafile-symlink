@@ -52,6 +52,15 @@ function Get-Config ([string]$Preset) {
         exit 1
     }
 
+    # Modify this via ini if the script isn't in a subfolder of a Seafile library
+    $config['LibraryPath'] = Get-AbsolutePath $config['LibraryPath'] $PSScriptRoot
+
+    # Ensure that LibraryPath points to a directory
+    Assert-IsDirectory $config['LibraryPath'] $MyInvocation.MyCommand 'LibraryPath'
+
+    # Extension to use for symlink placeholders, with leading period
+    $config['PlaceholderExt'] = $config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
+
     $config
 }
 
@@ -118,9 +127,9 @@ function Test-IsDirectory ([string]$Path) {
 }
 
 
-function Assert-IsDirectory ([string]$DirPath, [string]$Method) {
+function Assert-IsDirectory ([string]$DirPath, [string]$Method, [string]$Param) {
     if (!(Test-IsDirectory $DirPath)) {
-        Write-Host "$Method expects DirPath to be a directory."
+        Write-Host "$Method expects $Param to be a directory."
         exit 1
     }
 }
@@ -128,7 +137,7 @@ function Assert-IsDirectory ([string]$DirPath, [string]$Method) {
 
 # Helper function for retrieving one path relative to another
 function Get-RelativePath ([string]$Path, [string]$DirPath) {
-    Assert-IsDirectory $DirPath $MyInvocation.MyCommand
+    Assert-IsDirectory $DirPath $MyInvocation.MyCommand 'DirPath'
     Push-Location -Path $DirPath
     $out = Resolve-Path -Relative $Path
     Pop-Location
@@ -140,7 +149,7 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
 function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
-    Assert-IsDirectory $DirPath $MyInvocation.MyCommand
+    Assert-IsDirectory $DirPath $MyInvocation.MyCommand 'DirPath'
     if (![System.IO.Path]::IsPathRooted($Path)) {
         $Path = Join-Path ($DirPath) $Path
         $Path = [System.IO.Path]::GetFullPath($Path)
@@ -357,17 +366,11 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
-# Modify this via ini if the script isn't in a subfolder of a Seafile library
-$LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
-
-# Extension to use for symlink placeholders, with leading period
-$PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
-
 # Gather symlink records, create symlinks and placeholders, return paths to ignore
-$IgnorePaths = Get-Data $LibraryPath $PlaceholderExt | ForEach-Object {
-    New-Placeholder @_ $PlaceholderExt
-    New-SymbolicLink @_ $LibraryPath
-    Get-SymbolicLinkIgnorePath @_ $LibraryPath
+$IgnorePaths = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt'] | ForEach-Object {
+    New-Placeholder @_ $Config['PlaceholderExt']
+    New-SymbolicLink @_ $Config['LibraryPath']
+    Get-SymbolicLinkIgnorePath @_ $Config['LibraryPath']
 }
 
-Write-SeafileIgnoreFile $LibraryPath $IgnorePaths
+Write-SeafileIgnoreFile $Config['LibraryPath'] $IgnorePaths
