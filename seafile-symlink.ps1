@@ -20,7 +20,11 @@ function Get-IniContent ([string]$FilePath) {
         "(.+?)\s*=(.*)" # Key
         {
             $k,$v = $matches[1..2]
-            $v = $v.Substring(0, $v.IndexOf(';'))
+            # Trim trailing comments, if present
+            $c = $v.IndexOf(';')
+            if ($c -gt 0) {
+                $v = $v.Substring(0, $c)
+            }
             $v = Invoke-Expression($v)
             $ini[$k] = $v
         }
