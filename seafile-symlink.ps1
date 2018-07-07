@@ -367,11 +367,19 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
-# Gather symlink records, create symlinks and placeholders, return paths to ignore
-$IgnorePaths = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt'] | ForEach-Object {
-    New-Placeholder @_ $Config['PlaceholderExt']
-    New-SymbolicLink @_ $Config['LibraryPath']
+# Gather symlink records from placeholders and actual symlinks
+$Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
+
+# Create actual symlinks from data
+$Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
+
+# Create placeholders from data
+$Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+
+# Gather symlink paths to ignore
+$IgnorePaths = $Data | ForEach-Object {
     Get-SymbolicLinkIgnorePath @_ $Config['LibraryPath']
 }
 
+# Write symlink paths to ignore file
 Write-SeafileIgnoreFile $Config['LibraryPath'] $IgnorePaths
