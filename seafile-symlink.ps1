@@ -112,6 +112,11 @@ function Get-SymbolicPlaceholders ([string]$DirPath, [string]$PlaceholderExt) {
 }
 
 
+function Test-IsDirectory ([string]$Path) {
+    (Get-Item -Path $Path) -is [System.IO.DirectoryInfo]
+}
+
+
 # Helper function for retrieving one path relative to another
 function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
     Push-Location -Path $PathFrom
@@ -125,7 +130,7 @@ function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
 function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
-    if (!((Get-Item -Path $DirPath) -is [System.IO.DirectoryInfo])) {
+    if (!(Test-IsDirectory $DirPath)) {
         Write-Host "Get-AbsolutePath expects fallback to be a directory."
         exit 1
     }
@@ -252,17 +257,14 @@ foreach ($linkPath in $linkPaths) {
     # Normalize the target path if it's actually relative
     $destPathAbs = Get-AbsolutePath $destPathAbs $linkParentPathAbs
 
-    # Check if the link refers to a directory or a file
-    $destIsDir = (Get-Item -Path $destPathAbs) -is [System.IO.DirectoryInfo]
-
     # Determine the relative path from library root to the symlink for ignoring
     $linkIgnorePath = Get-RelativePath $LibraryPath $linkPathAbs
     $linkIgnorePath = $linkIgnorePath.TrimStart('.\')
     $linkIgnorePath = $linkIgnorePath.Replace('\','/')
 
-    # TODO: Test if symbolic links to folders require forwardslash or absence thereof
+    # If the symlink refers to a directory, treat it as such. The docs are wrong.
     # https://www.seafile.com/en/help/ignore/
-    if ($destIsDir) {
+    if (Test-IsDirectory $destPathAbs) {
         $linkIgnorePath = $linkIgnorePath + '/'
     }
 
