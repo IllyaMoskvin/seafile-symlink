@@ -196,6 +196,19 @@ function Get-UniqueData ($HashArray) {
 }
 
 
+# Runs all Get-FoobarRawData functions, normalizes symlink targets to absolute, and returns de-duped results.
+function Get-Data ([string]$LibraryPath, [string]$PlaceholderExt) {
+    $data = @()
+    $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
+    $data += Get-SymbolicLinkRawData $LibraryPath
+
+    $data = Get-AbsoluteData $data
+    $data = Get-UniqueData $data
+
+    $data
+}
+
+
 # Helper to return the directory within which the symlink should be located.
 function Get-LinkParentPath ([string]$LinkPath) {
     if (![System.IO.Path]::IsPathRooted($LinkPath)) {
@@ -350,23 +363,11 @@ $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 # Extension to use for symlink placeholders, with leading period
 $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
-# Create symbolic links from placeholders
-$data = @()
-$data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
-$data += Get-SymbolicLinkRawData $LibraryPath
-
-$data = Get-AbsoluteData $data
-$data = Get-UniqueData $data
-
-$ignorePaths = @()
-
-foreach ($datum in $data) {
-
-    $ignorePaths += Get-SymbolicLinkIgnorePath @datum $LibraryPath
-
-    New-Placeholder @datum $PlaceholderExt
-    New-SymbolicLink @datum $LibraryPath
-
+# Gather symlink records, create symlinks and placeholders, return paths to ignore
+$IgnorePaths = Get-Data $LibraryPath $PlaceholderExt | ForEach-Object {
+    New-Placeholder @_ $PlaceholderExt
+    New-SymbolicLink @_ $LibraryPath
+    Get-SymbolicLinkIgnorePath @_ $LibraryPath
 }
 
-Write-SeafileIgnoreFile $LibraryPath $ignorePaths
+Write-SeafileIgnoreFile $LibraryPath $IgnorePaths
