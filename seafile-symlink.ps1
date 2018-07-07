@@ -158,13 +158,13 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
 
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
-    $ignorePath = "$LibraryPath\seafile-ignore.txt"
-    if (Test-Path $ignorePath) {
-        Write-Host "Found $ignorePath"
-        Get-Item -Path $ignorePath
+    $ignoreFilePath = "$LibraryPath\seafile-ignore.txt"
+    if (Test-Path $ignoreFilePath) {
+        Write-Host "Found $ignoreFilePath"
+        Get-Item -Path $ignoreFilePath
     } else {
-        Write-Host "Created $ignorePath"
-        New-Item -Path $ignorePath -Type "file"
+        Write-Host "Created $ignoreFilePath"
+        New-Item -Path $ignoreFilePath -Type "file"
     }
 }
 
