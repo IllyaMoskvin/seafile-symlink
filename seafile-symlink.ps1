@@ -263,7 +263,7 @@ foreach ($linkPath in $linkPaths) {
         $ignorePath = $ignorePath + '/'
     }
 
-    $ignorePath += $ignorePath
+    $ignorePaths += $ignorePath
 
     # If the path falls below the library root, keep it absolute, else make it relative
     # TODO: Make this a setting? Esp. how to treat paths on the same drive?
