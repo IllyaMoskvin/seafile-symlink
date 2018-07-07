@@ -215,7 +215,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 $Config = Get-Config $Preset
 
 # Modify this via ini if the script isn't in a subfolder of a Seafile library
-$LibraryPath = $Config['LibraryPath']
+$LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 
 # Extension to use for symlink placeholders
 $PlaceholderExt = $Config['PlaceholderExt']
