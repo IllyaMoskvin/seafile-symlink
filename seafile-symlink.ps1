@@ -133,6 +133,15 @@ function Get-SeafileIgnoreFile ([string]$LibraryPath) {
 }
 
 
+# Used for padding output
+function Add-TrailingNewline ([string[]]$Lines) {
+    if (![string]::IsNullOrEmpty($Lines[-1])) {
+        $Lines += ''
+    }
+    $Lines
+}
+
+
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
@@ -234,14 +243,10 @@ $siSuffix = @($ignoreNeedle, $ignoreWarning)
 $siSuffix += $linkIgnorePaths
 
 # Ensure that a newline precedes the suffix
-if (![string]::IsNullOrEmpty($siPrefix[-1])) {
-    $siPrefix += ''
-}
+$siPrefix = Add-TrailingNewline $siPrefix
 
 # For comparison's sake, do the same to the source
-if (![string]::IsNullOrEmpty($siContent[-1])) {
-    $siContent += ''
-}
+$siContent = Add-TrailingNewline $siContent
 
 # Add suffix to prefix with trailing newline
 $siContentNew = $siPrefix + $siSuffix + ''
