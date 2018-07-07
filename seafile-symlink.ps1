@@ -229,10 +229,8 @@ $phPaths = Get-SymbolicPlaceholders $LibraryPath $PlaceholderExt
 
 foreach ($phPath in $phPaths) {
 
-    $placeholder = Get-Item -Path $phPath
-
     # Assumes file w/ single line, no empty trailing ones
-    $destPath = Get-Content $placeholder
+    $destPath = Get-Content -Path $phPath
     $linkPath = $phPath.TrimEnd($PlaceholderExt)
 
     New-SymbolicLink $linkPath $destPath
