@@ -433,7 +433,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 
     # Split the ignore file into two parts based on our needle
     $content = Get-Content (Get-SeafileIgnoreFile $LibraryPath)
-    $prefix = $prefix.Where({ $_ -Like $needle }, 'Until')
+    $prefix = $content.Where({ $_ -Like $needle }, 'Until')
 
     # Create the suffix header
     $suffix = @($needle, '# Do not modify the line above or anything below it')
