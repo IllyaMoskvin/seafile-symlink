@@ -1,6 +1,47 @@
 #Requires -Version 5
 # https://github.com/haiwen/seafile/issues/288
 
+# Read INI file into hashtable. Adapted from these examples:
+# https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/
+# https://serverfault.com/questions/186030/how-to-use-a-config-file-ini-conf-with-a-powershell-script-is-it-possib
+# We'll ignore [Sections], comments (;), and require strings to be wrapped in quotes.
+function Get-IniContent ([string]$FilePath) {
+    $ini = @{}
+    switch -regex -file $FilePath
+    {
+        "(.+?)\s*=(.*)" # Key
+        {
+            $k,$v = $matches[1..2]
+            $v = $v.Substring(0, $v.IndexOf(';'))
+            $v = Invoke-Expression($v)
+            $ini[$k] = $v
+        }
+    }
+    $ini
+}
+
+
+# Given a preset name, load and validate its config file.
+function Get-Config ([string]$Preset) {
+    $config = Get-IniContent ($PSScriptRoot + '\presets\' + $Preset + '.ini')
+
+    $keys = @('LibraryPath')
+
+    foreach ($key in $keys) {
+        if (!$config[$key]) {
+            Write-Host 'Missing key in config:' $key
+            exit 1
+        }
+    }
+
+    if (!(Test-Path $config['LibraryPath'])) {
+        Write-Host 'Cannot resolve LibraryPath:' $config['LibraryPath']
+        exit 1
+    }
+
+    $config
+}
+
 
 # Convert an array into a hastable, with every two array members forming a name-value pair.
 # https://stackoverflow.com/questions/27764394/get-valuefromremainingarguments-as-an-hashtable
@@ -80,8 +121,12 @@ function Get-SeafileIgnoreFile ([string]$RootPath) {
 }
 
 
+# TODO: Accept -Preset parameter via commandline
+$Preset = 'default'
+$Config = Get-Config $Preset
+
 # Modify this if the script isn't in the root of a Seafile library
-$rootPath = $PSScriptRoot
+$rootPath = $Config['LibraryPath']
 
 # Extension to use for symlink placeholders
 $symExt = 'seaflnk'
@@ -168,6 +213,7 @@ foreach ($linkPath in $linkPaths) {
     $siSuffix += $linkIgnorePath
 
     # If the path falls below the library root, keep it absolute, else make it relative
+    # TODO: Make this a setting? Esp. how to treat paths on the same drive?
     if (!$destPathAbs.StartsWith($rootPath)) {
         $destPath = $destPathAbs
     } else {
