@@ -135,7 +135,7 @@ function Get-SeafileIgnoreFile ([string]$LibraryPath) {
 
 # Used for padding output
 function Add-TrailingNewline ([string[]]$Lines) {
-    if (![string]::IsNullOrEmpty($Lines[-1])) {
+    if (($Lines.count -gt 0) -and (![string]::IsNullOrEmpty($Lines[-1]))) {
         $Lines += ''
     }
     $Lines
