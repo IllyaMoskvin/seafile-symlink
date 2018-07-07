@@ -155,6 +155,20 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 }
 
 
+# Given a potentially Windows-style path, convert it to Unix-style.
+# https://stackoverflow.com/questions/34286173/changing-windows-path-to-unix-path
+function Get-NormalizedPath ([string]$Path) {
+    if ($Path.StartsWith('.\')) {
+        $Path = $Path.TrimStart('.\')
+    } elseif (-not $Path.StartsWith('..')) {
+        $Path = '\' + $Path
+    }
+    $Path = $Path.Replace('\','/')
+    $Path = $Path.Replace(':','')
+    $Path
+}
+
+
 # Helper to normalize a potentially relative path to absolute.
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
@@ -288,8 +302,7 @@ function Get-NormalizedDestPath ([string]$LinkPath, [string]$DestPath, [string]$
 function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     # Determine the relative path from library root to the symlink for ignoring
     $ignorePath = Get-RelativePath $LinkPath $LibraryPath
-    $ignorePath = $ignorePath.TrimStart('.\')
-    $ignorePath = $ignorePath.Replace('\','/')
+    $ignorePath = Get-NormalizedPath $ignorePath
 
     # If the $DestPath is relative, resolve it as such to the $LinkPath
     $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
@@ -428,6 +441,8 @@ function Write-DatabaseFile ($Data, [string]$LibraryPath) {
     $Data | ForEach-Object {
         $linkPath = Get-RelativePath $_.LinkPath $LibraryPath
         $destPath = Get-NormalizedDestPath $_.LinkPath $_.DestPath $LibraryPath
+        $linkPath = Get-NormalizedPath ($linkPath)
+        $destPath = Get-NormalizedPath ($destPath)
         $linkPath + ' >>> ' + $destPath
     }
 }
