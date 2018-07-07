@@ -142,6 +142,24 @@ function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
 }
 
 
+# Expects absolute paths to a symlink, its target, and the Seafile library.
+# Returns a `seafile-ignore.txt` line that will cause Seafile to ignore the symlink.
+function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
+    # Determine the relative path from library root to the symlink for ignoring
+    $ignorePath = Get-RelativePath $LibraryPath $LinkPath
+    $ignorePath = $ignorePath.TrimStart('.\')
+    $ignorePath = $ignorePath.Replace('\','/')
+
+    # If the symlink refers to a directory, treat it as such. The docs are wrong.
+    # https://www.seafile.com/en/help/ignore/
+    if (Test-IsDirectory $DestPath) {
+        $ignorePath = $ignorePath + '/'
+    }
+
+    $ignorePath
+}
+
+
 function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
     Push-Location -Path (Split-Path $LinkPath -Parent)
@@ -252,18 +270,7 @@ foreach ($linkPath in $linkPaths) {
     # Normalize the target path if it's actually relative
     $destPath = Get-AbsolutePath $destPath $linkParentPath
 
-    # Determine the relative path from library root to the symlink for ignoring
-    $ignorePath = Get-RelativePath $LibraryPath $linkPath
-    $ignorePath = $ignorePath.TrimStart('.\')
-    $ignorePath = $ignorePath.Replace('\','/')
-
-    # If the symlink refers to a directory, treat it as such. The docs are wrong.
-    # https://www.seafile.com/en/help/ignore/
-    if (Test-IsDirectory $destPath) {
-        $ignorePath = $ignorePath + '/'
-    }
-
-    $ignorePaths += $ignorePath
+    $ignorePaths += Get-SymbolicLinkIgnorePath $linkPath $destPath $LibraryPath
 
     # If the path falls below the library root, keep it absolute, else make it relative
     # TODO: Make this a setting? Esp. how to treat paths on the same drive?
