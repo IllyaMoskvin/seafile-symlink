@@ -174,6 +174,17 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
 }
 
 
+# Create a symlink placeholder file.
+# TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
+function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+    $dir = Split-Path -Path $LinkPath -Parent
+    $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
+    $file = New-Item -Path $dir -Name $name -Type "file" -Value $DestPath -Force
+
+    Write-Host "Created placeholder: `"$file`" >>> `"$DestPath`""
+}
+
+
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
     $ignoreFilePath = "$LibraryPath\seafile-ignore.txt"
@@ -278,11 +289,7 @@ foreach ($linkPath in $linkPaths) {
         $destPath = Get-RelativePath $linkParentPath $destPath
     }
 
-    # Create a symlink placeholder file
-    $phName = (Split-Path -Path $linkPath -Leaf) + $PlaceholderExt
-    $phFile = New-Item -Path $linkParentPath -Name $phName -Type "file" -Value $destPath -Force
-
-    Write-Host "Created placeholder: `"$phFile`" >>> `"$destPath`""
+    New-Placeholder $linkPath $destPath $PlaceholderExt
 
 }
 
