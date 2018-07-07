@@ -170,15 +170,26 @@ function Get-SymbolicLinkData ([string]$LibraryPath) {
 }
 
 
+# Helper to return the directory within which the symlink should be located.
+function Get-LinkParentPath ([string]$LinkPath) {
+    if (![System.IO.Path]::IsPathRooted($LinkPath)) {
+        Write-Host 'Get-LinkParentPath expects LinkPath to be absolute.'
+        exit 1
+    }
+    Split-Path -Path $LinkPath -Parent
+}
+
+
+
 # Normalize $DestPaths returned by Get-FoobarData functions to absolute.
 function Get-AbsoluteDestPath ([string]$LinkPath, [string]$DestPath) {
-    Get-AbsolutePath $DestPath (Split-Path $LinkPath -Parent)
+    Get-AbsolutePath $DestPath (Get-LinkParentPath $LinkPath)
 }
 
 
 # Normalize $DestPaths returned by Get-FoobarData functions to relative.
 function Get-RelativeDestPath ([string]$LinkPath, [string]$DestPath) {
-    Get-RelativePath $DestPath (Split-Path $LinkPath -Parent)
+    Get-RelativePath $DestPath (Get-LinkParentPath $LinkPath)
 }
 
 
@@ -222,7 +233,7 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$Librar
     $DestPath = Get-NormalizedDestPath $LinkPath $DestPath $LibraryPath
 
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
-    Push-Location -Path (Split-Path $LinkPath -Parent)
+    Push-Location -Path (Get-LinkParentPath $LinkPath)
 
     # https://stackoverflow.com/questions/894430/creating-hard-and-soft-links-using-powershell
     New-Item -Path $LinkPath -ItemType SymbolicLink -Value $DestPath -Force | Out-Null
@@ -237,7 +248,7 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$Librar
 # Create a symlink placeholder file.
 # TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
 function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
-    $dir = Split-Path -Path $LinkPath -Parent
+    $dir = Get-LinkParentPath $LinkPath
     $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
     $file = New-Item -Path $dir -Name $name -Type "file" -Value $DestPath -Force
 
