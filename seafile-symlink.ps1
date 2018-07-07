@@ -352,29 +352,27 @@ function Get-DatabasePath ([string]$LibraryPath) {
 }
 
 
+# Returns System.IO.FileSystemInfo of file at $Path, creating it if necessary
+function Get-File ([string]$Path) {
+    if (Test-Path $Path) {
+        Write-Host "Found $Path"
+        Get-Item -Path $Path
+    } else {
+        Write-Host "Created $Path"
+        New-Item -Path $Path -Type "file"
+    }
+}
+
+
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
-    $ignoreFilePath = "$LibraryPath\seafile-ignore.txt"
-    if (Test-Path $ignoreFilePath) {
-        Write-Host "Found $ignoreFilePath"
-        Get-Item -Path $ignoreFilePath
-    } else {
-        Write-Host "Created $ignoreFilePath"
-        New-Item -Path $ignoreFilePath -Type "file"
-    }
+    Get-File "$LibraryPath\seafile-ignore.txt"
 }
 
 
 # Returns System.IO.FileSystemInfo of seafile-symlink.txt, creating it if necessary
 function Get-DatabaseFile ([string]$LibraryPath) {
-    $databasePath = Get-DatabasePath $LibraryPath
-    if (Test-Path $databasePath) {
-        Write-Host "Found $databasePath"
-        Get-Item -Path $databasePath
-    } else {
-        Write-Host "Created $databasePath"
-        New-Item -Path $databasePath -Type "file"
-    }
+    Get-File (Get-DatabasePath $LibraryPath)
 }
 
 
