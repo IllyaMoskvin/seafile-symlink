@@ -460,24 +460,28 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 
     # Split the ignore file into two parts based on our needle
     $contentOld = Get-Content (Get-SeafileIgnoreFile $LibraryPath)
-    $prefix = $contentOld.Where({ $_ -Like $needle }, 'Until')
+    $contentNew = $contentOld.Where({ $_ -Like $needle }, 'Until')
 
-    # Create the suffix header
-    $suffix = @($needle, '# Do not modify the line above or anything below it')
+    # Putting this into a conditional will remove suffix header if there are no symlinks
+    if ($PathsToIgnore -and $PathsToIgnore.Length -gt 0) {
 
-    # Append the ignore paths to our suffix
-    $suffix += $PathsToIgnore
+        # Ensure that a newline precedes the suffix
+        $contentNew = Add-TrailingNewline $contentNew
 
-    # Ensure that a newline precedes the suffix
-    $prefix = Add-TrailingNewline $prefix
+        # For comparison's sake, do the same to the source
+        $contentOld = Add-TrailingNewline $contentOld
 
-    # For comparison's sake, do the same to the source
-    $contentOld = Add-TrailingNewline $contentOld
+        # Append the suffix header
+        $contentNew = @($needle, '# Do not modify the line above or anything below it')
 
-    # Add suffix to prefix with trailing newline
-    $contentNew = Add-TrailingNewline ($prefix + $suffix)
+        # Append the ignore paths to our suffix
+        $contentNew += $PathsToIgnore
 
-    # TODO: Avoid adding / remove suffix header if there are no symlinks to ignore
+        # Add trailing newline after the suffix
+        $contentNew = Add-TrailingNewline $contentNew
+
+    }
+
     Write-IfChanged "$LibraryPath\seafile-ignore.txt" $contentNew $contentOld
 }
 
