@@ -423,6 +423,13 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 }
 
 
+function Remove-DatabaseFile ([string]$LibraryPath) {
+    $databasePath = Get-DatabasePath $LibraryPath
+    Remove-Item -Path $databasePath
+    Write-Host "Removed database: `"$databasePath`""
+}
+
+
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
@@ -438,6 +445,7 @@ Write-Host 'Using StorageMethod:' $Config['StorageMethod']
 switch ($config['StorageMethod']) {
     'placeholder' {
         $Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+        Remove-DatabaseFile $Config['LibraryPath']
     }
     'database' {
         # TODO: Implement this!
