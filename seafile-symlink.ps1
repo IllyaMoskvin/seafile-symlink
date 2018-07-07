@@ -4,10 +4,11 @@
 # Specify -Preset as a param when calling this script to use custom ini files.
 # Ex: `.\seafile-symlink.ps1 -Preset Custom` to use `.\presets\custom.ini`
 # Params are capitalization-agnostic so `-preset custom` would work just as well.
-param(
+param (
     [string]
     $Preset='default'
 )
+
 
 # Read INI file into hashtable. Adapted from these examples:
 # https://blogs.technet.microsoft.com/heyscriptingguy/2011/08/20/use-powershell-to-work-with-any-ini-file/
@@ -70,7 +71,7 @@ function Get-ParamHash ([string[]]$ParamArray) {
 # Accepts the same named params as `Get-ChildItem`... except maybe `Path`?
 # The cucial difference vs. `Get-ChildItem` is that this doesn't follow symlinks.
 # First positional param is the path to the directory within which to search.
-function Get-SymbolicPaths {
+function Get-NonsymbolicPaths {
     param (
         [string]
         $DirPath,
@@ -91,7 +92,7 @@ function Get-SymbolicPaths {
 
         # Call this function on each subdirectory and append the result
         foreach ($subdir in $subdirs) {
-            $links += Get-SymbolicPaths $subdir.FullName @params
+            $links += Get-NonsymbolicPaths $subdir.FullName @params
         }
 
         @($links | Where-Object { $_ })  # Remove empty items
@@ -102,13 +103,13 @@ function Get-SymbolicPaths {
 # This should detect SymbolicLinks, but not HardLinks or Junctures (intentionally)
 # https://stackoverflow.com/questions/817794/find-out-whether-a-file-is-a-symbolic-link-in-powershell
 function Get-SymbolicLinkPaths ([string]$DirPath) {
-    Get-SymbolicPaths $DirPath -Attributes ReparsePoint
+    Get-NonsymbolicPaths $DirPath -Attributes ReparsePoint
 }
 
 
 # Find placeholder files recursively, returning their paths.
-function Get-SymbolicPlaceholderPaths ([string]$DirPath, [string]$PlaceholderExt) {
-    Get-SymbolicPaths $DirPath -Include "*$PlaceholderExt"
+function Get-PlaceholderPaths ([string]$DirPath, [string]$PlaceholderExt) {
+    Get-NonsymbolicPaths $DirPath -Include "*$PlaceholderExt"
 }
 
 
@@ -244,6 +245,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
     }
 }
 
+
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
@@ -254,7 +256,7 @@ $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
 # Look for symlink placeholder files, and create symlinks from them
-$phPaths = Get-SymbolicPlaceholderPaths $LibraryPath $PlaceholderExt
+$phPaths = Get-PlaceholderPaths $LibraryPath $PlaceholderExt
 
 foreach ($phPath in $phPaths) {
 
