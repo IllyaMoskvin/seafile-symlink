@@ -172,6 +172,17 @@ function Get-SymbolicLinkRawData ([string]$LibraryPath) {
 }
 
 
+# Normalizes all symlink target paths in $Data to absolute.
+function Get-AbsoluteData ($Data) {
+    $Data | ForEach-Object {
+        @{
+            'dest' = Get-AbsoluteDestPath $_.link $_.dest
+            'link' = $_.link
+        }
+    }
+}
+
+
 # Helper to de-duplicate records returned by Get-FoobarRawData functions.
 # https://stackoverflow.com/questions/14332930/how-to-get-unique-value-from-an-array-of-hashtable-in-powershell
 function Get-UniqueData ($HashtableArray) {
@@ -345,7 +356,7 @@ $data = @()
 $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
 $data += Get-SymbolicLinkRawData $LibraryPath
 
-# TODO: Normalize the data before de-duping it?
+$data = Get-AbsoluteData $data
 $data = Get-UniqueData $data
 
 $ignorePaths = @()
