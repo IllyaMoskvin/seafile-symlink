@@ -66,7 +66,7 @@ function Get-ParamHash ([string[]]$ParamArray) {
 }
 
 
-# Helper to find files recursively within a given directory.
+# Helper to find files recursively within a given directory. Returns absolute paths.
 # Accepts the same named params as `Get-ChildItem`... except maybe `Path`?
 # The cucial difference vs. `Get-ChildItem` is that this doesn't follow symlinks.
 # First positional param is the path to the directory within which to search.
@@ -238,49 +238,48 @@ foreach ($phPath in $phPaths) {
 }
 
 $linkPaths = Get-SymbolicLinks $LibraryPath
-$linkIgnorePaths = @()
+$ignorePaths = @()
 
+# Let's work with absolute paths for ease of comparison
 foreach ($linkPath in $linkPaths) {
 
+    # Used to get destination path + derive placeholder name
     $link = Get-Item -Path $linkPath
 
-    # Let's work with absolute paths for ease of comparison
-    $linkPathAbs = $link.FullName
-    $destPathAbs = $link | Select-Object -ExpandProperty Target
+    # The symlink target can be absolute or relative
+    $destPath = $link | Select-Object -ExpandProperty Target
 
     # Get the directory in which the symlink is located
-    $linkParentPathAbs = Split-Path $linkPathAbs -Parent
+    $linkParentPath = Split-Path $linkPath -Parent
 
     # Normalize the target path if it's actually relative
-    $destPathAbs = Get-AbsolutePath $destPathAbs $linkParentPathAbs
+    $destPath = Get-AbsolutePath $destPath $linkParentPath
 
     # Determine the relative path from library root to the symlink for ignoring
-    $linkIgnorePath = Get-RelativePath $LibraryPath $linkPathAbs
-    $linkIgnorePath = $linkIgnorePath.TrimStart('.\')
-    $linkIgnorePath = $linkIgnorePath.Replace('\','/')
+    $ignorePath = Get-RelativePath $LibraryPath $linkPath
+    $ignorePath = $ignorePath.TrimStart('.\')
+    $ignorePath = $ignorePath.Replace('\','/')
 
     # If the symlink refers to a directory, treat it as such. The docs are wrong.
     # https://www.seafile.com/en/help/ignore/
-    if (Test-IsDirectory $destPathAbs) {
-        $linkIgnorePath = $linkIgnorePath + '/'
+    if (Test-IsDirectory $destPath) {
+        $ignorePath = $ignorePath + '/'
     }
 
-    $linkIgnorePaths += $linkIgnorePath
+    $ignorePath += $ignorePath
 
     # If the path falls below the library root, keep it absolute, else make it relative
     # TODO: Make this a setting? Esp. how to treat paths on the same drive?
-    if (!$destPathAbs.StartsWith($LibraryPath)) {
-        $destPath = $destPathAbs
-    } else {
-        $destPath = Get-RelativePath $linkParentPathAbs $destPathAbs
+    if ($destPath.StartsWith($LibraryPath)) {
+        $destPath = Get-RelativePath $linkParentPath $destPath
     }
 
     # Create a symlink placeholder file
     $phName = $link.Name + '.' + $PlaceholderExt
-    $phFile = New-Item -Path $linkParentPathAbs -Name $phName -Type "file" -Value $destPath -Force
+    $phFile = New-Item -Path $linkParentPath -Name $phName -Type "file" -Value $destPath -Force
 
     Write-Host "Created placeholder: `"$phFile`" >>> `"$destPath`""
 
 }
 
-Write-SeafileIgnoreFile $LibraryPath $linkIgnorePaths
+Write-SeafileIgnoreFile $LibraryPath $ignorePaths
