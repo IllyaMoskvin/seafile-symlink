@@ -173,8 +173,8 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
     Get-PlaceholderPaths $LibraryPath $PlaceholderExt | ForEach-Object {
         @{
             # Assumes file w/ single line, no empty trailing ones
-            DestPath = Get-Content -Path $_
             LinkPath = $_.TrimEnd($PlaceholderExt)
+            DestPath = Get-Content -Path $_
         }
     }
 }
@@ -187,8 +187,8 @@ function Get-DatabaseRawData ([string]$LibraryPath) {
         Get-Content -Path $databasePath | ForEach-Object {
             $line = $_ -Split ' >>> ', 2
             @{
-                DestPath = $line[1]
                 LinkPath = $line[0]
+                DestPath = $line[1]
             }
         }
     } else {
@@ -202,8 +202,8 @@ function Get-DatabaseRawData ([string]$LibraryPath) {
 function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
         @{
-            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
             LinkPath = $_
+            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
         }
     }
 }
