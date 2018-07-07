@@ -184,7 +184,7 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
 function Get-DatabaseRawData ([string]$LibraryPath) {
     $databasePath = Get-DatabasePath $LibraryPath
     if (Test-Path $databasePath) {
-        Get-Content -Path $databasePath | ForEach-Object {
+        Get-Content -Path $databasePath | Where-Object { $_ } | ForEach-Object {
             $line = $_ -Split ' >>> ', 2
             @{
                 LinkPath = $line[0]
