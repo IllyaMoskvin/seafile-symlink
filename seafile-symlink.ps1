@@ -143,6 +143,18 @@ function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
 }
 
 
+# Generates {link, dest} pairs from placeholder files in library.
+function Get-PlaceholderData ([string]$LibraryPath, [string]$PlaceholderExt) {
+    Get-PlaceholderPaths $LibraryPath $PlaceholderExt | ForEach-Object {
+        @{
+            # Assumes file w/ single line, no empty trailing ones
+            'dest' = Get-Content -Path $_
+            'link' = $_.TrimEnd($PlaceholderExt)
+        }
+    }
+}
+
+
 # Expects absolute paths to a symlink, its target, and the Seafile library.
 # Returns a `seafile-ignore.txt` line that will cause Seafile to ignore the symlink.
 function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
@@ -255,17 +267,11 @@ $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 # Extension to use for symlink placeholders, with leading period
 $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
-# Look for symlink placeholder files, and create symlinks from them
-$phPaths = Get-PlaceholderPaths $LibraryPath $PlaceholderExt
+# Create symbolic links from placeholders
+$data = Get-PlaceholderData $LibraryPath $PlaceholderExt
 
-foreach ($phPath in $phPaths) {
-
-    # Assumes file w/ single line, no empty trailing ones
-    $destPath = Get-Content -Path $phPath
-    $linkPath = $phPath.TrimEnd($PlaceholderExt)
-
-    New-SymbolicLink $linkPath $destPath
-
+foreach ($datum in $data) {
+    New-SymbolicLink $datum['link'] $datum['dest']
 }
 
 $linkPaths = Get-SymbolicLinkPaths $LibraryPath
