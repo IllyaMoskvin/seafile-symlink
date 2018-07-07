@@ -121,6 +121,22 @@ function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
 }
 
 
+# Helper to normalize a potentially relative path to absolute.
+# If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
+# https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
+function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
+    if (!((Get-Item -Path $DirPath) -is [System.IO.DirectoryInfo])) {
+        Write-Host "Get-AbsolutePath expects fallback to be a directory."
+        exit 1
+    }
+    if (![System.IO.Path]::IsPathRooted($Path)) {
+        $Path = Join-Path ($DirPath) $Path
+        $Path = [System.IO.Path]::GetFullPath($Path)
+    }
+    $Path
+}
+
+
 function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
     Push-Location -Path (Split-Path $LinkPath -Parent)
@@ -234,11 +250,7 @@ foreach ($linkPath in $linkPaths) {
     $linkParentPathAbs = Split-Path $linkPathAbs -Parent
 
     # Normalize the target path if it's actually relative
-    # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
-    if (![System.IO.Path]::IsPathRooted($destPathAbs)) {
-        $destPathAbs = Join-Path ($linkParentPathAbs) $destPathAbs
-        $destPathAbs = [System.IO.Path]::GetFullPath($destPathAbs)
-    }
+    $destPathAbs = Get-AbsolutePath $destPathAbs $linkParentPathAbs
 
     # Check if the link refers to a directory or a file
     $destIsDir = (Get-Item -Path $destPathAbs) -is [System.IO.DirectoryInfo]
