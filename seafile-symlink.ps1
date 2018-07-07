@@ -239,7 +239,7 @@ function Get-SymbolicLinkRawData ([string]$LibraryPath) {
 }
 
 
-# Convert normalized (Unix) paths in raw data to Windows conventions.
+# Convert any normalized (Unix) paths in raw data to Windows conventions.
 function Get-LocalizedData ($Data) {
     $Data | ForEach-Object {
         @{
@@ -374,8 +374,9 @@ function Get-PlaceholderPath ([string]$LinkPath, [string]$PlaceholderExt) {
 # TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
 function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
     $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
-    New-Item -Path $placeholderPath -Type "file" -Value $DestPath -Force | Out-Null
-    Write-Host "Created placeholder: `"$placeholderPath`" >>> `"$DestPath`""
+    $normalizedDestPath = Get-NormalizedPath $DestPath
+    New-Item -Path $placeholderPath -Type "file" -Value $normalizedDestPath -Force | Out-Null
+    Write-Host "Created placeholder: `"$placeholderPath`" >>> `"$normalizedDestPath`""
 }
 
 
