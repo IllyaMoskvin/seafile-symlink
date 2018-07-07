@@ -312,7 +312,7 @@ function Get-RelativeDestPath ([string]$LinkPath, [string]$DestPath) {
 
 
 # Given a relative or absolute symlink target path, normalize it for how we want to save it.
-function Get-NormalizedDestPath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
+function Get-BusinessDestPath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
 
     # If the path falls below the library root, keep it absolute, else make it relative
@@ -347,7 +347,7 @@ function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [stri
 
 function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     # Ensure that the $DestPath fits our business logic
-    $DestPath = Get-NormalizedDestPath $LinkPath $DestPath $LibraryPath
+    $DestPath = Get-BusinessDestPath $LinkPath $DestPath $LibraryPath
 
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
     Push-Location -Path (Get-LinkParentPath $LinkPath)
@@ -468,7 +468,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 function Write-DatabaseFile ($Data, [string]$LibraryPath) {
     $Data | ForEach-Object {
         $linkPath = Get-RelativePath $_.LinkPath $LibraryPath
-        $destPath = Get-NormalizedDestPath $_.LinkPath $_.DestPath $LibraryPath
+        $destPath = Get-BusinessDestPath $_.LinkPath $_.DestPath $LibraryPath
         $linkPath = Get-NormalizedPath ($linkPath)
         $destPath = Get-NormalizedPath ($destPath)
         $linkPath + ' >>> ' + $destPath
