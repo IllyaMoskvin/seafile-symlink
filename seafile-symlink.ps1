@@ -185,8 +185,8 @@ function Get-AbsoluteData ($Data) {
 
 # Helper to de-duplicate records returned by Get-FoobarRawData functions.
 # https://stackoverflow.com/questions/14332930/how-to-get-unique-value-from-an-array-of-hashtable-in-powershell
-function Get-UniqueData ($HashtableArray) {
-    $HashtableArray | Select-Object @{
+function Get-UniqueData ($HashArray) {
+    $HashArray | Select-Object @{
         Expression = { "$($_.Keys):$($_.Values)" }
         Label ="AsString"
     }, @{
@@ -204,7 +204,6 @@ function Get-LinkParentPath ([string]$LinkPath) {
     }
     Split-Path -Path $LinkPath -Parent
 }
-
 
 
 # Normalize $DestPaths returned by Get-FoobarRawData functions to absolute.
