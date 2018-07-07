@@ -136,7 +136,7 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
 function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
     if (!(Test-IsDirectory $DirPath)) {
-        Write-Host "Get-AbsolutePath expects fallback to be a directory."
+        Write-Host "Get-AbsolutePath expects DirPath to be a directory."
         exit 1
     }
     if (![System.IO.Path]::IsPathRooted($Path)) {
@@ -162,26 +162,37 @@ function Get-PlaceholderData ([string]$LibraryPath, [string]$PlaceholderExt) {
 # Generates {link, dest} pairs from symlinks in library.
 function Get-SymbolicLinkData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
-        # The symlink target can be absolute or relative
-        $destPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
-
-        # Get the directory in which the symlink is located
-        $linkParentPath = Split-Path $_ -Parent
-
-        # Normalize the target path if it's actually relative
-        $destPath = Get-AbsolutePath $destPath $linkParentPath
-
-        # If the path falls below the library root, keep it absolute, else make it relative
-        # TODO: Make this a setting? Esp. how to treat paths on the same drive?
-        if ($destPath.StartsWith($LibraryPath)) {
-            $destPath = Get-RelativePath $destPath $linkParentPath
-        }
-
         @{
-            'dest' = $destPath
+            'dest' = Get-Item -Path $_ | Select-Object -ExpandProperty Target
             'link' = $_
         }
     }
+}
+
+
+# Normalize $DestPaths returned by Get-FoobarData functions to absolute.
+function Get-AbsoluteDestPath ([string]$LinkPath, [string]$DestPath) {
+    Get-AbsolutePath $DestPath (Split-Path $LinkPath -Parent)
+}
+
+
+# Normalize $DestPaths returned by Get-FoobarData functions to relative.
+function Get-RelativeDestPath ([string]$LinkPath, [string]$DestPath) {
+    Get-RelativePath $DestPath (Split-Path $LinkPath -Parent)
+}
+
+
+# Given a relative or absolute symlink target path, normalize it for how we want to save it.
+function Get-NormalizedDestPath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
+    $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
+
+    # If the path falls below the library root, keep it absolute, else make it relative
+    # TODO: Make this a setting? Esp. how to treat paths on the same drive?
+    if ($DestPath.StartsWith($LibraryPath)) {
+        $DestPath = Get-RelativeDestPath $LinkPath $DestPath
+    }
+
+    $DestPath
 }
 
 
@@ -193,6 +204,9 @@ function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [stri
     $ignorePath = $ignorePath.TrimStart('.\')
     $ignorePath = $ignorePath.Replace('\','/')
 
+    # If the $DestPath is relative, resolve it as such to the $LinkPath
+    $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
+
     # If the symlink refers to a directory, treat it as such. The docs are wrong.
     # https://www.seafile.com/en/help/ignore/
     if (Test-IsDirectory $DestPath) {
@@ -203,7 +217,10 @@ function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [stri
 }
 
 
-function New-SymbolicLink ([string]$LinkPath, [string]$DestPath) {
+function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
+    # Ensure that the $DestPath fits our business logic
+    $DestPath = Get-NormalizedDestPath $LinkPath $DestPath $LibraryPath
+
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
     Push-Location -Path (Split-Path $LinkPath -Parent)
 
@@ -301,6 +318,7 @@ $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 $data = @()
 $data += Get-PlaceholderData $LibraryPath $PlaceholderExt
 $data += Get-SymbolicLinkData $LibraryPath
+# TODO: De-dupe the data
 
 $ignorePaths = @()
 
@@ -308,9 +326,9 @@ foreach ($datum in $data) {
 
     $ignorePaths += Get-SymbolicLinkIgnorePath $datum['link'] $datum['dest'] $LibraryPath
 
-    New-SymbolicLink $datum['link'] $datum['dest']
-
     New-Placeholder $datum['link'] $datum['dest'] $PlaceholderExt
+    New-SymbolicLink $datum['link'] $datum['dest'] $LibraryPath
+
 }
 
 Write-SeafileIgnoreFile $LibraryPath $ignorePaths
