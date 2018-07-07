@@ -332,6 +332,18 @@ function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$Placeho
 }
 
 
+function Remove-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+    $dir = Get-LinkParentPath $LinkPath
+    $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
+    $path = "$dir\$name"
+
+    if (Test-Path $path) {
+        Remove-Item -Path "$dir\$name"
+        Write-Host "Removed placeholder: `"$path`""
+    }
+}
+
+
 function Get-DatabasePath ([string]$LibraryPath) {
     $LibraryPath + '\seafile-symlink.txt'
 }
