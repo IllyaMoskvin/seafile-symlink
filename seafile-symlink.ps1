@@ -123,12 +123,13 @@ function Get-RelativePath ([string]$PathFrom, [string]$PathTo) {
 
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
-    if (Test-Path "$LibraryPath\seafile-ignore.txt") {
-        Write-Host "Found $LibraryPath\seafile-ignore.txt"
-        Get-Item -Path "$LibraryPath\seafile-ignore.txt"
+    $ignorePath = "$LibraryPath\seafile-ignore.txt"
+    if (Test-Path $ignorePath) {
+        Write-Host "Found $ignorePath"
+        Get-Item -Path $ignorePath
     } else {
-        Write-Host "Created $LibraryPath\seafile-ignore.txt"
-        New-Item -Path $LibraryPath -Name "seafile-ignore.txt" -Type "file"
+        Write-Host "Created $ignorePath"
+        New-Item -Path $ignorePath -Type "file"
     }
 }
 
@@ -172,7 +173,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 
     if ($hasChanged) {
         $output = $contentNew -Join "`n"
-        New-Item -Path "$LibraryPath" -Name "seafile-ignore.txt" -Type "file" -Value $output -Force | Out-Null
+        New-Item -Path "$LibraryPath\seafile-ignore.txt" -Type "file" -Value $output -Force | Out-Null
         Write-Host "Updated seafile-ignore.txt"
     } else {
         Write-Host "No changes to seafile-ignore.txt required"
