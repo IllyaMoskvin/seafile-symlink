@@ -101,13 +101,13 @@ function Get-SymbolicPaths {
 
 # This should detect SymbolicLinks, but not HardLinks or Junctures (intentionally)
 # https://stackoverflow.com/questions/817794/find-out-whether-a-file-is-a-symbolic-link-in-powershell
-function Get-SymbolicLinks ([string]$DirPath) {
+function Get-SymbolicLinkPaths ([string]$DirPath) {
     Get-SymbolicPaths $DirPath -Attributes ReparsePoint
 }
 
 
 # Find placeholder files recursively, returning their paths.
-function Get-SymbolicPlaceholders ([string]$DirPath, [string]$PlaceholderExt) {
+function Get-SymbolicPlaceholderPaths ([string]$DirPath, [string]$PlaceholderExt) {
     Get-SymbolicPaths $DirPath -Include "*$PlaceholderExt"
 }
 
@@ -225,7 +225,7 @@ $LibraryPath = Get-AbsolutePath $Config['LibraryPath'] $PSScriptRoot
 $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
 # Look for symlink placeholder files, and create symlinks from them
-$phPaths = Get-SymbolicPlaceholders $LibraryPath $PlaceholderExt
+$phPaths = Get-SymbolicPlaceholderPaths $LibraryPath $PlaceholderExt
 
 foreach ($phPath in $phPaths) {
 
@@ -237,7 +237,7 @@ foreach ($phPath in $phPaths) {
 
 }
 
-$linkPaths = Get-SymbolicLinks $LibraryPath
+$linkPaths = Get-SymbolicLinkPaths $LibraryPath
 $ignorePaths = @()
 
 # Let's work with absolute paths for ease of comparison
