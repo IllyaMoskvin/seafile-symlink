@@ -148,7 +148,7 @@ function Get-AbsolutePath ([string]$Path, [string]$DirPath) {
 
 
 # Generates {link, dest} pairs from placeholder files in library.
-function Get-PlaceholderData ([string]$LibraryPath, [string]$PlaceholderExt) {
+function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) {
     Get-PlaceholderPaths $LibraryPath $PlaceholderExt | ForEach-Object {
         @{
             # Assumes file w/ single line, no empty trailing ones
@@ -160,7 +160,7 @@ function Get-PlaceholderData ([string]$LibraryPath, [string]$PlaceholderExt) {
 
 
 # Generates {link, dest} pairs from symlinks in library.
-function Get-SymbolicLinkData ([string]$LibraryPath) {
+function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
         @{
             'dest' = Get-Item -Path $_ | Select-Object -ExpandProperty Target
@@ -170,7 +170,7 @@ function Get-SymbolicLinkData ([string]$LibraryPath) {
 }
 
 
-# Helper to de-duplicate records returned by Get-FoobarData functions.
+# Helper to de-duplicate records returned by Get-FoobarRawData functions.
 # https://stackoverflow.com/questions/14332930/how-to-get-unique-value-from-an-array-of-hashtable-in-powershell
 function Get-UniqueData ($HashtableArray) {
     $HashtableArray | Select-Object @{
@@ -194,13 +194,13 @@ function Get-LinkParentPath ([string]$LinkPath) {
 
 
 
-# Normalize $DestPaths returned by Get-FoobarData functions to absolute.
+# Normalize $DestPaths returned by Get-FoobarRawData functions to absolute.
 function Get-AbsoluteDestPath ([string]$LinkPath, [string]$DestPath) {
     Get-AbsolutePath $DestPath (Get-LinkParentPath $LinkPath)
 }
 
 
-# Normalize $DestPaths returned by Get-FoobarData functions to relative.
+# Normalize $DestPaths returned by Get-FoobarRawData functions to relative.
 function Get-RelativeDestPath ([string]$LinkPath, [string]$DestPath) {
     Get-RelativePath $DestPath (Get-LinkParentPath $LinkPath)
 }
@@ -340,8 +340,8 @@ $PlaceholderExt = $Config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
 # Create symbolic links from placeholders
 $data = @()
-$data += Get-PlaceholderData $LibraryPath $PlaceholderExt
-$data += Get-SymbolicLinkData $LibraryPath
+$data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
+$data += Get-SymbolicLinkRawData $LibraryPath
 
 # TODO: Normalize the data before de-duping it?
 $data = Get-UniqueData $data
