@@ -33,7 +33,7 @@ There are two scripts included with this repository: PowerShell and bash.
 [seafile-symlink.ps1](seafile-symlink.ps1) was developed on Windows 7 SP3
 with PowerShell 5.0.
 
-[seafile-symlink.sh](seafile-symlink.ps1) was developed on macOS 10.12.6
+[seafile-symlink.sh](seafile-symlink.sh) was developed on macOS 10.12.6
 with bash 3.2.57.
 
 Please do not attempt to run the `.ps1` on Linux, nor the `.sh` on Windows.
