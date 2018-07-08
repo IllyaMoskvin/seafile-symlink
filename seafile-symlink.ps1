@@ -383,6 +383,7 @@ function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$Placeho
 }
 
 
+# Expects both $LinkPath and $DestPath for splatting convenience, but only needs the former.
 function Remove-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
     $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
     if (Test-Path $placeholderPath) {
@@ -560,6 +561,7 @@ switch ($config['StorageMethod']) {
         Remove-DatabaseFile $Config['LibraryPath']
     }
     'database' {
+        $Data | ForEach-Object { Remove-Placeholder @_ $Config['PlaceholderExt'] }
         Write-DatabaseFile $Data $Config['LibraryPath']
     }
 }
