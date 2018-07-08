@@ -1,5 +1,31 @@
 #Requires -Version 5
-# https://github.com/haiwen/seafile/issues/288
+<#
+.SYNOPSIS
+  Saves symlinks to a syncable format and restores them therefrom.
+.DESCRIPTION
+  Has the ability to save symlink date via placeholder files, or via
+  `seafile-symlink.txt` in library root. Create custom ini files in
+  the `preset` directory. Tell the script which ini file to use via
+  the `-Preset` param.
+
+  Meant to address https://github.com/haiwen/seafile/issues/288
+.PARAMETER Preset
+  Specifies which config file to use in the `presets` subdirectory.
+.OUTPUTS
+  None
+.NOTES
+  Version:        1.0
+  Author:         Illya Moskvin
+  Creation Date:  2018-07-07
+  License:        MIT
+.EXAMPLE
+  .\seafile-symlink.ps1 -Prefix MyCustomPreset
+  This will search for `.\presets\MyCustomPreset.ini` and load its config.
+.EXAMPLE
+  .\seafile-symlink.ps1 -Prefix C:\foobar\custom.ini
+  This will search for `C:\foobar\custom.ini` and load its config.
+#>
+
 
 # Specify -Preset as a param when calling this script to use custom ini files.
 # Ex: `.\seafile-symlink.ps1 -Preset Custom` to use `.\presets\custom.ini`
@@ -36,9 +62,23 @@ function Get-IniContent ([string]$FilePath) {
 
 # Given a preset name, load and validate its config file.
 function Get-Config ([string]$Preset) {
-    $config = Get-IniContent ($PSScriptRoot + '\presets\' + $Preset + '.ini')
 
-    $keys = @('LibraryPath', 'PlaceholderExt')
+    # Unless an absolute path is provided, look in the `presets` directory
+    if (![System.IO.Path]::IsPathRooted($Preset)) {
+        if (!$Preset.EndsWith('.ini')) {
+            $Preset += '.ini'
+        }
+        $Preset = $PSScriptRoot + '\presets\' + $Preset
+    }
+
+    if (!(Test-Path $Preset)) {
+        Write-Host 'Config not found:' $Preset
+        exit 1
+    }
+
+    $config = Get-IniContent ($Preset)
+
+    $keys = @('LibraryPath', 'StorageMethod', 'PlaceholderExt')
 
     foreach ($key in $keys) {
         if (!$config[$key]) {
@@ -58,7 +98,16 @@ function Get-Config ([string]$Preset) {
     # Ensure that LibraryPath points to a directory
     Assert-IsDirectory $config['LibraryPath'] 'LibraryPath'
 
-    # Extension to use for symlink placeholders, with leading period
+    # Ensure that the specified storage method is valid
+    $storageMethods = @('database','placeholder')
+
+    if (!($storageMethods -contains $config['StorageMethod'])) {
+        Write-Host 'Invalid StorageMethod:' $config['StorageMethod']
+        Write-Host 'Valid methods:' ($storageMethods -join ', ')
+        exit 1
+    }
+
+    # Extension to use for reading or writing symlink placeholders, with leading period
     $config['PlaceholderExt'] = $config['PlaceholderExt'] -replace '^\.*(.*)$', '.$1'
 
     $config
@@ -146,6 +195,36 @@ function Get-RelativePath ([string]$Path, [string]$DirPath) {
 }
 
 
+# Given a potentially Windows-style path, convert it to Unix-style.
+# https://stackoverflow.com/questions/34286173/changing-windows-path-to-unix-path
+function Get-NormalizedPath ([string]$Path) {
+    if ($Path.StartsWith('.\')) {
+        $Path = $Path.TrimStart('.\')
+    } elseif (-not $Path.StartsWith('..')) {
+        $Path = '\' + $Path
+    }
+    $Path = $Path.Replace('\','/')
+    $Path = $Path.Replace(':','')
+    $Path
+}
+
+
+# Given a potentially Unix-style path, convert it to Windows-style.
+function Get-LocalizedPath ([string]$Path) {
+    if ($Path -notmatch '^[A-Za-z]:') {
+        if ($Path.StartsWith('/')) {
+            $Path = $Path.TrimStart('/')
+            $Path = $Path -replace '^([A-Za-z])/', '$1:/'
+        } elseif (-not $Path.StartsWith('..')) {
+            $Path = './' + $Path
+        }
+    }
+    $Path = $Path.Replace('/','\')
+    $Path
+}
+
+
+
 # Helper to normalize a potentially relative path to absolute.
 # If $Path is relative, it'll be resolved relative to $DirPath, else returned as-is.
 # https://stackoverflow.com/questions/495618/how-to-normalize-a-path-in-powershell
@@ -164,9 +243,26 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
     Get-PlaceholderPaths $LibraryPath $PlaceholderExt | ForEach-Object {
         @{
             # Assumes file w/ single line, no empty trailing ones
-            DestPath = Get-Content -Path $_
             LinkPath = $_.TrimEnd($PlaceholderExt)
+            DestPath = Get-Content -Path $_
         }
+    }
+}
+
+
+# Generates {link, dest} pairs from database text file in library.
+function Get-DatabaseRawData ([string]$LibraryPath) {
+    $databasePath = Get-DatabasePath $LibraryPath
+    if (Test-Path $databasePath) {
+        Get-Content -Path $databasePath | Where-Object { $_ } | ForEach-Object {
+            $line = $_ -Split ' >>> ', 2
+            @{
+                LinkPath = $LibraryPath + '/' + $line[0]
+                DestPath = $line[1]
+            }
+        }
+    } else {
+        Write-Host 'No existing database file found for reference'
     }
 }
 
@@ -175,8 +271,19 @@ function Get-PlaceholderRawData ([string]$LibraryPath, [string]$PlaceholderExt) 
 function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
         @{
-            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
             LinkPath = $_
+            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
+        }
+    }
+}
+
+
+# Convert any normalized (Unix) paths in raw data to Windows conventions.
+function Get-LocalizedData ($Data) {
+    $Data | ForEach-Object {
+        @{
+            DestPath = Get-LocalizedPath $_.DestPath
+            LinkPath = Get-LocalizedPath $_.LinkPath
         }
     }
 }
@@ -198,10 +305,10 @@ function Get-AbsoluteData ($Data) {
 function Get-UniqueData ($HashArray) {
     $HashArray | Select-Object @{
         Expression = { "$($_.Keys):$($_.Values)" }
-        Label ="AsString"
+        Label ='AsString'
     }, @{
         Expression ={$_}
-        Label = "Hash"
+        Label = 'Hash'
     } -Unique | Select-Object -ExpandProperty Hash
 }
 
@@ -210,12 +317,18 @@ function Get-UniqueData ($HashArray) {
 function Get-Data ([string]$LibraryPath, [string]$PlaceholderExt) {
     $data = @()
     $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
+    $data += Get-DatabaseRawData $LibraryPath
     $data += Get-SymbolicLinkRawData $LibraryPath
 
-    $data = Get-AbsoluteData $data
-    $data = Get-UniqueData $data
+    # Skip clean-up steps if there are no symlinks
+    if ($data.Count -gt 0) {
+        $data = Get-LocalizedData $data
+        $data = Get-AbsoluteData $data
+        $data = Get-UniqueData $data
+    }
 
-    $data
+    # https://stackoverflow.com/questions/18476634/powershell-doesnt-return-an-empty-array-as-an-array
+    return ,$data
 }
 
 
@@ -242,7 +355,7 @@ function Get-RelativeDestPath ([string]$LinkPath, [string]$DestPath) {
 
 
 # Given a relative or absolute symlink target path, normalize it for how we want to save it.
-function Get-NormalizedDestPath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
+function Get-BusinessDestPath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
 
     # If the path falls below the library root, keep it absolute, else make it relative
@@ -260,8 +373,7 @@ function Get-NormalizedDestPath ([string]$LinkPath, [string]$DestPath, [string]$
 function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     # Determine the relative path from library root to the symlink for ignoring
     $ignorePath = Get-RelativePath $LinkPath $LibraryPath
-    $ignorePath = $ignorePath.TrimStart('.\')
-    $ignorePath = $ignorePath.Replace('\','/')
+    $ignorePath = Get-NormalizedPath $ignorePath
 
     # If the $DestPath is relative, resolve it as such to the $LinkPath
     $DestPath = Get-AbsoluteDestPath $LinkPath $DestPath
@@ -278,7 +390,7 @@ function Get-SymbolicLinkIgnorePath ([string]$LinkPath, [string]$DestPath, [stri
 
 function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$LibraryPath) {
     # Ensure that the $DestPath fits our business logic
-    $DestPath = Get-NormalizedDestPath $LinkPath $DestPath $LibraryPath
+    $DestPath = Get-BusinessDestPath $LinkPath $DestPath $LibraryPath
 
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
     Push-Location -Path (Get-LinkParentPath $LinkPath)
@@ -293,27 +405,59 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$Librar
 }
 
 
-# Create a symlink placeholder file.
-# TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
-function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+# Given a symlink path, get a path to the corresponding placeholder with extension
+function Get-PlaceholderPath ([string]$LinkPath, [string]$PlaceholderExt) {
     $dir = Get-LinkParentPath $LinkPath
-    $name = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
-    $file = New-Item -Path $dir -Name $name -Type "file" -Value $DestPath -Force
+    $fname = (Split-Path -Path $LinkPath -Leaf) + $PlaceholderExt
+    "$dir\$fname"
+}
 
-    Write-Host "Created placeholder: `"$file`" >>> `"$DestPath`""
+
+# Create a symlink placeholder file.
+function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+    $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
+    $normalizedDestPath = Get-NormalizedPath $DestPath
+    Write-Host "Creating placeholder: `"$placeholderPath`" >>> `"$normalizedDestPath`""
+    Write-IfChanged $placeholderPath $normalizedDestPath
+}
+
+
+# Expects both $LinkPath and $DestPath for splatting convenience, but only needs the former.
+function Remove-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+    $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
+    if (Test-Path $placeholderPath) {
+        Remove-Item -Path $placeholderPath
+        Write-Host "Removed placeholder: `"$placeholderPath`""
+    }
+}
+
+
+function Get-DatabasePath ([string]$LibraryPath) {
+    $LibraryPath + '\seafile-symlink.txt'
+}
+
+
+# Returns System.IO.FileSystemInfo of file at $Path, creating it if necessary
+function Get-File ([string]$Path) {
+    if (Test-Path $Path) {
+        Write-Host 'Found:' $Path
+        Get-Item -Path $Path
+    } else {
+        Write-Host 'Created:' $Path
+        New-Item -Path $Path -Type 'file'
+    }
 }
 
 
 # Returns System.IO.FileSystemInfo of seafile-ignore.txt, creating it if necessary
 function Get-SeafileIgnoreFile ([string]$LibraryPath) {
-    $ignoreFilePath = "$LibraryPath\seafile-ignore.txt"
-    if (Test-Path $ignoreFilePath) {
-        Write-Host "Found $ignoreFilePath"
-        Get-Item -Path $ignoreFilePath
-    } else {
-        Write-Host "Created $ignoreFilePath"
-        New-Item -Path $ignoreFilePath -Type "file"
-    }
+    Get-File "$LibraryPath\seafile-ignore.txt"
+}
+
+
+# Returns System.IO.FileSystemInfo of seafile-symlink.txt, creating it if necessary
+function Get-DatabaseFile ([string]$LibraryPath) {
+    Get-File (Get-DatabasePath $LibraryPath)
 }
 
 
@@ -326,40 +470,109 @@ function Add-TrailingNewline ([string[]]$Lines) {
 }
 
 
+# Write to file in $Path only if there are changes in content
+function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$ContentOld) {
+
+    # Opinionated for our purpose - return early if there's nothing to write
+    if ($ContentNew.Length -lt 1) {
+        Write-Host 'Nothing to write:' $Path
+        return
+    }
+
+    # If $ContentOld was omitted ($null), try getting the file contents
+    # This can happen if the file is empty, or if the last param was omitted
+    if (($null -eq $ContentOld) -and (Test-Path $Path)) {
+        $ContentOld = Get-Content $Path
+    }
+
+    if ($null -eq $ContentOld) {
+        Write-Host 'Appears empty:' $Path
+    }
+
+    # Check if the original file was empty of if there were any changes
+    # https://stackoverflow.com/questions/9598173/comparing-array-variables-in-powershell
+    $hasChanged = !$ContentOld -or @(Compare-Object $ContentOld $ContentNew -SyncWindow 0).Length -gt 0
+
+    if ($hasChanged) {
+        New-Item -Path $Path -Type 'file' -Value ($ContentNew -Join "`n") -Force | Out-Null
+        Write-Host 'Updated:' $Path
+    } else {
+        Write-Host 'No changes required:' $Path
+    }
+}
+
+
 function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore ){
     # This is the separator b/w your manually ignored items, and auto-ignored symlinks
     $needle = '### SEAFILE-SYMLINK (AUTOGENERATED) ###'
 
     # Split the ignore file into two parts based on our needle
-    $content = Get-Content (Get-SeafileIgnoreFile $LibraryPath)
-    $prefix = $prefix.Where({ $_ -Like $needle }, 'Until')
+    $ignoreFile = Get-SeafileIgnoreFile $LibraryPath
+    $contentOld = Get-Content ($ignoreFile)
+    $contentNew = $contentOld.Where({ $_ -Like $needle }, 'Until')
 
-    # Create the suffix header
-    $suffix = @($needle, '# Do not modify the line above or anything below it')
+    # Putting this into a conditional will remove suffix header if there are no symlinks
+    if ($PathsToIgnore -and $PathsToIgnore.Length -gt 0) {
 
-    # Append the ignore paths to our suffix
-    $suffix += $PathsToIgnore
+        # Ensure that a newline precedes the suffix
+        $contentNew = Add-TrailingNewline $contentNew
 
-    # Ensure that a newline precedes the suffix
-    $prefix = Add-TrailingNewline $prefix
+        # For comparison's sake, do the same to the source
+        $contentOld = Add-TrailingNewline $contentOld
 
-    # For comparison's sake, do the same to the source
-    $content = Add-TrailingNewline $content
+        # Append the suffix header
+        $contentNew = @($needle, '# Do not modify the line above or anything below it')
 
-    # Add suffix to prefix with trailing newline
-    $contentNew = Add-TrailingNewline ($prefix + $suffix)
+        # Append the ignore paths to our suffix
+        $contentNew += $PathsToIgnore
 
-    # Check if seafile-ignore.txt was empty of if there were any changes
-    # https://stackoverflow.com/questions/9598173/comparing-array-variables-in-powershell
-    $hasChanged = !$content -or @(Compare-Object $content $contentNew -SyncWindow 0).Length -gt 0
+        # Add trailing newline after the suffix
+        $contentNew = Add-TrailingNewline $contentNew
 
-    # TODO: Avoid adding / remove suffix header if there are no symlinks to ignore
-    if ($hasChanged) {
-        $output = $contentNew -Join "`n"
-        New-Item -Path "$LibraryPath\seafile-ignore.txt" -Type "file" -Value $output -Force | Out-Null
-        Write-Host "Updated seafile-ignore.txt"
-    } else {
-        Write-Host "No changes to seafile-ignore.txt required"
+    } elseif ($contentOld.Count -lt 1) {
+
+        Remove-Item -Path $ignoreFile.FullName
+        Write-Host 'Removed seafile-ignore.txt because it would be empty'
+
+    }
+
+    Write-IfChanged "$LibraryPath\seafile-ignore.txt" $contentNew $contentOld
+}
+
+
+function Write-DatabaseFile ($Data, [string]$LibraryPath) {
+
+    # Exit early if there are no symlinks to write
+    if ($Data.Count -lt 1) {
+        Write-Host 'No symlink data found'
+        Remove-DatabaseFile $LibraryPath
+        return
+    }
+
+    $contentNew = $Data | ForEach-Object {
+        # Link paths should be relative to library root, target paths follow our business logic
+        $linkPath = Get-RelativePath $_.LinkPath $LibraryPath
+        $destPath = Get-BusinessDestPath $_.LinkPath $_.DestPath $LibraryPath
+
+        # Both paths should be stored normalized to Unix conventions
+        $linkPath = Get-NormalizedPath ($linkPath)
+        $destPath = Get-NormalizedPath ($destPath)
+
+        $linkPath + ' >>> ' + $destPath
+    }
+
+    # Create the database file if it doesn't exist
+    $database = Get-DatabaseFile $LibraryPath
+
+    Write-IfChanged ($database.FullName) $contentNew (Get-Content $database)
+}
+
+
+function Remove-DatabaseFile ([string]$LibraryPath) {
+    $databasePath = Get-DatabasePath $LibraryPath
+    if (Test-Path $databasePath) {
+        Remove-Item -Path $databasePath
+        Write-Host 'Removed database:' $databasePath
     }
 }
 
@@ -367,14 +580,30 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 # Uses -Preset param from commandline, defaults to `default`
 $Config = Get-Config $Preset
 
-# Gather symlink records from placeholders and actual symlinks
+Write-Host 'Processing LibraryPath:' $Config['LibraryPath']
+
+# Gather symlink records from placeholders, pseudo-database, and actual symlinks
 $Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
+
+# For debug, try uncommenting this before it changes data:
+# $Data | ForEach-Object { Write-Host @_ }; exit
 
 # Create actual symlinks from data
 $Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
 
-# Create placeholders from data
-$Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+# Persist symlink data for syncing using specified StorageMethod
+Write-Host 'Using StorageMethod:' $Config['StorageMethod']
+
+switch ($config['StorageMethod']) {
+    'placeholder' {
+        $Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+        Remove-DatabaseFile $Config['LibraryPath']
+    }
+    'database' {
+        $Data | ForEach-Object { Remove-Placeholder @_ $Config['PlaceholderExt'] }
+        Write-DatabaseFile $Data $Config['LibraryPath']
+    }
+}
 
 # Gather symlink paths to ignore
 $IgnorePaths = $Data | ForEach-Object {
