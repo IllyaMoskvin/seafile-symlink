@@ -47,7 +47,11 @@ function get_config_value {
 # Convert potentially Windows path to Unix
 # https://stackoverflow.com/questions/13701218/windows-path-to-posix-path-conversion-in-bash
 function get_localized_path {
-    echo "$1" | sed -E 's/^([A-Za-z]):/\\\1/' | sed 's/\\/\//g'
+    path="$(echo "$1" | sed -E 's/^([A-Za-z]):/\\\1/' | sed 's/\\/\//g')"
+    if [ "${path:0:1}" != '/' ] && [ "${path:0:1}" != '.' ] ; then
+        path="./$path"
+    fi
+    echo "$path"
 }
 
 
@@ -110,7 +114,9 @@ DATA_RAW=()
 # https://stackoverflow.com/questions/22691436/unable-to-add-element-to-array-in-bash
 # https://stackoverflow.com/questions/2087001/how-can-i-process-the-results-of-find-in-a-bash-script
 while read linkPath; do
-    DATA_RAW+=("$linkPath >>> $(readlink "$linkPath")")
+    destPath="$(readlink "$linkPath")"
+    destPath="$(get_localized_path "$destPath")"
+    DATA_RAW+=("$linkPath >>> $destPath")
 done < <(find . -type l)
 
 printf '%s\n' "${DATA_RAW[@]}"
