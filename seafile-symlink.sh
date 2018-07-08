@@ -119,6 +119,14 @@ while read linkPath; do
     DATA_RAW+=("$linkPath >>> $destPath")
 done < <(find . -type l)
 
+# Gather data from symlink placeholders
+while read placeholderPath; do
+    linkPath="$(echo "$placeholderPath" | sed -e "s/$PlaceholderExt//")"
+    destPath="$(<"$placeholderPath")"
+    DATA_RAW+=("$linkPath >>> $destPath")
+done < <(find . -name "*$PlaceholderExt")
+
+
 printf '%s\n' "${DATA_RAW[@]}"
 
 
