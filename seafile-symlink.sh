@@ -109,6 +109,11 @@ if [[ "$PRESET" != /* ]]; then
    PRESET="presets/$PRESET"
 fi
 
+# Ensure the specified config exists
+if [ ! -f "$PRESET" ]; then
+    error_exit "Config not found: $(realpath "$PRESET")"
+fi
+
 # Unfortunately, associative arrays are only supported in bash 4+
 # Installing it on macOS is a hassle, so we'll stick with bash 3
 # https://apple.stackexchange.com/questions/193411/update-bash-to-version-4-0-on-osx
@@ -131,6 +136,10 @@ fi
 
 # Ensure PlaceholderExt starts with a period
 PlaceholderExt=".$(echo "$PlaceholderExt" | sed -e 's/^\.//')"
+
+# Output some config feedback to user
+echo "Processing LibraryPath: $(realpath "$LibraryPath")"
+echo "Using StorageMethod: $StorageMethod"
 
 
 
@@ -198,8 +207,10 @@ printf '%s\n' "${DATA_RAW[@]}"
 # https://superuser.com/questions/90008/how-to-clear-the-contents-of-a-file-from-the-command-line
 if [ "$StorageMethod" == 'database' ] ; then
     > "seafile-symlink.txt"
+    echo "Created database: $(realpath "seafile-symlink.txt")"
 elif [ -f "seafile-symlink.txt" ] ; then
     rm "seafile-symlink.txt"
+    echo "Removed database: $(realpath "seafile-symlink.txt")"
 fi
 
 # Prepare seafile-ignore.txt for writing
@@ -275,6 +286,7 @@ fi
 # Remove seafile-ignore.txt if it would be empty
 if [ ${#IGNORE[@]} -eq 0 ]; then
     rm "seafile-ignore.txt"
+    echo 'Removed seafile-ignore.txt because it would be empty'
 fi
 
 
