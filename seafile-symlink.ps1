@@ -524,7 +524,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
         $contentNew = Add-TrailingNewline $contentNew
 
         # Append the suffix header
-        $contentNew = @($needle, '# Do not modify the line above or anything below it')
+        $contentNew += @($needle, '# Do not modify the line above or anything below it')
 
         # Append the ignore paths to our suffix
         $contentNew += $PathsToIgnore
