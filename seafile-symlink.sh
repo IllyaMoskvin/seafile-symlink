@@ -118,6 +118,44 @@ printf '%s\n' "${DATA_RAW[@]}"
 
 
 #================================================
+# Writing files
+#================================================
+
+# Reset the contents of the symlink database, or delete it if using placeholders
+# https://superuser.com/questions/90008/how-to-clear-the-contents-of-a-file-from-the-command-line
+if [ "$StorageMethod" == 'database' ] ; then
+    > "seafile-symlink.txt"
+elif [ -f "seafile-symlink.txt" ] ; then
+    rm "seafile-symlink.txt"
+fi
+
+for datum in "${DATA_RAW[@]}"
+do
+    # https://stackoverflow.com/questions/42662099/how-would-i-delimit-a-string-by-multiple-delimiters-in-bash
+    linkPath="$(awk -F ' >>> ' '{print $1}' <<< "$datum")"
+    destPath="$(awk -F ' >>> ' '{print $2}' <<< "$datum")"
+
+    # Left-trims ./ to align w/ seafile-ignore.txt examples
+    linkPath="$(echo "$linkPath" | sed -e 's/^\.\///')"
+    destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
+
+    # Make a symlink
+    # ln -sf $destPath $linkPath
+
+    # Write a symlink placeholder file
+    if [ "$StorageMethod" == 'placeholder' ] ; then
+        echo "$destPath" > "$linkPath$PlaceholderExt"
+    fi
+
+    # Append to symlink database
+    if [ "$StorageMethod" == 'database' ] ; then
+        echo "$linkPath >>> $destPath" >> "seafile-symlink.txt"
+    fi
+done
+
+
+
+#================================================
 # Cleanup
 #================================================
 
