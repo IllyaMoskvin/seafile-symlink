@@ -241,7 +241,12 @@ do
     destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
 
     # Append link path to seafile-ignore.txt
-    echo "$linkPath" >> "seafile-ignore.txt"
+    # Determine if the link will point to a directory
+    if [ -d "$(dirname "$linkPath")/$destPath" ] ; then
+        echo "$linkPath/" >> "seafile-ignore.txt"
+    else
+        echo "$linkPath" >> "seafile-ignore.txt"
+    fi
 
     # Make a symlink
     ln -snf "$destPath" "$linkPath"
