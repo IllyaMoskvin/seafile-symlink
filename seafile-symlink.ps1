@@ -322,9 +322,9 @@ function Get-UniqueData ($HashArray) {
 # Runs all Get-FoobarRawData functions, normalizes symlink targets to absolute, and returns de-duped results.
 function Get-Data ([string]$LibraryPath, [string]$PlaceholderExt) {
     $data = @()
-    $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
-    $data += Get-DatabaseRawData $LibraryPath
     $data += Get-SymbolicLinkRawData $LibraryPath
+    $data += Get-DatabaseRawData $LibraryPath
+    $data += Get-PlaceholderRawData $LibraryPath $PlaceholderExt
 
     # Skip clean-up steps if there are no symlinks
     if ($data.Count -gt 0) {
