@@ -266,6 +266,16 @@ do
     linkPath="$(echo "$linkPath" | sed -e 's/^\.\///')"
     destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
 
+    # Business logic for normalizing absolute links
+    # https://stackoverflow.com/a/28523143
+    if [[ "$destPath" == /* ]] ; then
+        if [[ "$destPath" == "$(pwd)"* ]] ; then
+            tempPath="$destPath"
+            destPath="$(realpath --relative-to="$LibraryPath" "$destPath")"
+            echo "Converted absolute target: $tempPath >>> $destPath"
+        fi
+    fi
+
     # Append link path to seafile-ignore.txt
     # Determine if the link will point to a directory
     if [ -d "$(dirname "$linkPath")/$destPath" ] ; then
