@@ -414,11 +414,14 @@ function Get-PlaceholderPath ([string]$LinkPath, [string]$PlaceholderExt) {
 
 
 # Create a symlink placeholder file.
-function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
+function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt, [string]$LibraryPath) {
+    # Ensure $DestPath follows our business logic and Unix conventions
+    $DestPath = Get-BusinessDestPath $LinkPath $DestPath $LibraryPath
+    $DestPath = Get-NormalizedPath $DestPath
+
     $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
-    $normalizedDestPath = Get-NormalizedPath $DestPath
-    Write-Host "Creating placeholder: `"$placeholderPath`" >>> `"$normalizedDestPath`""
-    Write-IfChanged $placeholderPath $normalizedDestPath
+    Write-Host "Creating placeholder: `"$placeholderPath`" >>> `"$DestPath`""
+    Write-IfChanged $placeholderPath $DestPath
 }
 
 
@@ -593,7 +596,7 @@ Write-Host 'Using StorageMethod:' $Config['StorageMethod']
 
 switch ($config['StorageMethod']) {
     'placeholder' {
-        $Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] }
+        $Data | ForEach-Object { New-Placeholder @_ $Config['PlaceholderExt'] $Config['LibraryPath'] }
         Remove-DatabaseFile $Config['LibraryPath']
     }
     'database' {
@@ -612,4 +615,3 @@ Write-SeafileIgnoreFile $Config['LibraryPath'] $IgnorePaths
 
 # Create actual symlinks from data
 $Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
-
