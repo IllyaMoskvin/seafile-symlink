@@ -170,6 +170,11 @@ fi
 
 for datum in "${DATA_RAW[@]}"
 do
+    # Ignore any rogue blank lines
+    if [[ $datum != *' >>> '* ]]; then
+        continue
+    fi
+
     # https://stackoverflow.com/questions/42662099/how-would-i-delimit-a-string-by-multiple-delimiters-in-bash
     linkPath="$(awk -F ' >>> ' '{print $1}' <<< "$datum")"
     destPath="$(awk -F ' >>> ' '{print $2}' <<< "$datum")"
@@ -179,7 +184,7 @@ do
     destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
 
     # Make a symlink
-    # ln -sf $destPath $linkPath
+    ln -snf "$destPath" "$linkPath"
 
     # Write a symlink placeholder file
     if [ "$StorageMethod" == 'placeholder' ] ; then
