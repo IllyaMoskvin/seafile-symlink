@@ -1,5 +1,31 @@
 #Requires -Version 5
-# https://github.com/haiwen/seafile/issues/288
+<#
+.SYNOPSIS
+  Saves symlinks to a syncable format and restores them therefrom.
+.DESCRIPTION
+  Has the ability to save symlink date via placeholder files, or via
+  `seafile-symlink.txt` in library root. Create custom ini files in
+  the `preset` directory. Tell the script which ini file to use via
+  the `-Preset` param.
+
+  Meant to address https://github.com/haiwen/seafile/issues/288
+.PARAMETER Preset
+  Specifies which config file to use in the `presets` subdirectory.
+.OUTPUTS
+  None
+.NOTES
+  Version:        1.0
+  Author:         Illya Moskvin
+  Creation Date:  2018-07-07
+  License:        MIT
+.EXAMPLE
+  .\seafile-symlink.ps1 -Prefix MyCustomPreset
+  This will search for `.\presets\MyCustomPreset.ini` and load its config.
+.EXAMPLE
+  .\seafile-symlink.ps1 -Prefix C:\foobar\custom.ini
+  This will search for `C:\foobar\custom.ini` and load its config.
+#>
+
 
 # Specify -Preset as a param when calling this script to use custom ini files.
 # Ex: `.\seafile-symlink.ps1 -Preset Custom` to use `.\presets\custom.ini`
