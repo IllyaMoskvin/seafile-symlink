@@ -186,11 +186,17 @@ function Assert-IsDirectory ([string]$DirPath, [string]$Param) {
 
 
 # Helper function for retrieving one path relative to another
+# Calls Resolve-Path but works for files that don't exist.
+# https://stackoverflow.com/questions/3038337/powershell-resolve-path-that-might-not-exist
 function Get-RelativePath ([string]$Path, [string]$DirPath) {
     Assert-IsDirectory $DirPath 'DirPath'
     Push-Location -Path $DirPath
-    $out = Resolve-Path -Relative $Path
+    $out = Resolve-Path $Path -Relative -ErrorAction 'SilentlyContinue' -ErrorVariable '_frperror'
+    if (-not($out)) {
+        $out = $_frperror[0].TargetObject
+    }
     Pop-Location
+
     $out
 }
 
