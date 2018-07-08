@@ -127,13 +127,14 @@ it, it will be re-created the next time you run `seafile-symlink`. Checklist:
 When syncing symlinks across devices:
 
 1. Wait for the database or placeholder files to sync
-2. Disable auto-sync
-3. Run `seafile-symlink`
-4. Re-enable auto-sync
+2. Run `seafile-symlink`
 
-Disabling syncing here is a precaution against Seafile picking up symlinks
-before they get appended to `seafile-ignore.txt`. This will be fixed in a
-future update.
+The scripts should update `seafile-ignore.txt` before creating new symlinks,
+but you may want to disable syncing whenever running them just in case.
+
+The PowerShell version is pretty good about avoiding unnecessary file writes,
+but the bash version uses append liberally. This may trigger unnecessary but
+harmless syncs in Seafile.
 
 
 

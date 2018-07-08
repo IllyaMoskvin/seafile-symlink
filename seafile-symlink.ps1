@@ -588,9 +588,6 @@ $Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
 # For debug, try uncommenting this before it changes data:
 # $Data | ForEach-Object { Write-Host @_ }; exit
 
-# Create actual symlinks from data
-$Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
-
 # Persist symlink data for syncing using specified StorageMethod
 Write-Host 'Using StorageMethod:' $Config['StorageMethod']
 
@@ -612,3 +609,7 @@ $IgnorePaths = $Data | ForEach-Object {
 
 # Write symlink paths to ignore file
 Write-SeafileIgnoreFile $Config['LibraryPath'] $IgnorePaths
+
+# Create actual symlinks from data
+$Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
+
