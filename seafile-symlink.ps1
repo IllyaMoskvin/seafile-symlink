@@ -401,10 +401,10 @@ function Get-DatabasePath ([string]$LibraryPath) {
 # Returns System.IO.FileSystemInfo of file at $Path, creating it if necessary
 function Get-File ([string]$Path) {
     if (Test-Path $Path) {
-        Write-Host "Found $Path"
+        Write-Host "Found: $Path"
         Get-Item -Path $Path
     } else {
-        Write-Host "Created $Path"
+        Write-Host "Created: $Path"
         New-Item -Path $Path -Type "file"
     }
 }
@@ -434,12 +434,9 @@ function Add-TrailingNewline ([string[]]$Lines) {
 # Write to file in $Path only if there are changes in content
 function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$ContentOld) {
 
-    # Get the filename from $Path for console output
-    $fname = Split-Path $Path -Leaf
-
     # Opinionated for our purpose - return early if there's nothing to write
     if ($ContentNew.Length -lt 1) {
-        Write-Host 'Nothing to write to' $fname
+        Write-Host 'Nothing to write:' $Path
         return
     }
 
@@ -450,7 +447,7 @@ function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$Conte
     }
 
     if ($null -eq $ContentOld) {
-        Write-Host 'Empty:' $Path
+        Write-Host 'Appears empty:' $Path
     }
 
     # Check if the original file was empty of if there were any changes
@@ -459,9 +456,9 @@ function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$Conte
 
     if ($hasChanged) {
         New-Item -Path $Path -Type "file" -Value ($ContentNew -Join "`n") -Force | Out-Null
-        Write-Host "Updated $fname"
+        Write-Host 'Updated:' $Path
     } else {
-        Write-Host "No changes to $fname required"
+        Write-Host 'No changes required:' $Path
     }
 }
 
@@ -548,6 +545,9 @@ Write-Host 'Processing LibraryPath:' $Config['LibraryPath']
 
 # Gather symlink records from placeholders, pseudo-database, and actual symlinks
 $Data = Get-Data $Config['LibraryPath'] $Config['PlaceholderExt']
+
+# For debug, try uncommenting this before it changes data:
+# $Data | ForEach-Object { Write-Host @_ }; exit
 
 # Create actual symlinks from data
 $Data | ForEach-Object { New-SymbolicLink @_ $Config['LibraryPath'] }
