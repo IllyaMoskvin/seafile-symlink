@@ -15,7 +15,7 @@
   None
 .NOTES
   Version:        1.0
-  Author:         Illya Moskvin
+  Author:         Illya Moskvin <ivmoskvin@gmail.com>
   Creation Date:  2018-07-07
   License:        MIT
 .EXAMPLE

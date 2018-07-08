@@ -1,10 +1,44 @@
 #!/bin/bash
-#
-# https://github.com/haiwen/seafile/issues/288
+#================================================================
+# HEADER
+#================================================================
+#% USAGE
+#+    ${SCRIPT_NAME} [preset]
+#%
+#% SYNOPSIS
+#%    Saves symlinks to a syncable format and restores them therefrom.
+#%
+#% DESCRIPTION
+#%    Has the ability to save symlink date via placeholder files, or via
+#%    `seafile-symlink.txt` in library root. Create custom ini files in
+#%    the `preset` directory. Tell the script which ini file to use via
+#%    the `-Preset` param.
+#%
+#%    Meant to address https://github.com/haiwen/seafile/issues/288
+#%
+#% OPTIONS
+#%    [preset]      Specifies which ini config file to use
+#%
+#% EXAMPLES
+#%    ${SCRIPT_NAME} default             # loads ./presets/default.ini
+#%    ${SCRIPT_NAME} default.ini         # loads ./presets/default.ini
+#%    ${SCRIPT_NAME} ~/foo/default.ini   # accepts absolute paths
+#%
+#================================================================
+#- IMPLEMENTATION
+#-    version         1.0
+#-    author          Illya Moskvin <ivmoskvin@gmail.com>
+#-    created         2018-07-08
+#-    license         MIT
+#================================================================
+# END_OF_HEADER
+#================================================================
 
-#================================================
+
+
+#================================================================
 # Initialization
-#================================================
+#================================================================
 
 # Functions for trapping process and exiting from functions and sub-shells.
 # https://stackoverflow.com/questions/9893667/is-there-a-way-to-write-a-bash-function-which-aborts-the-whole-execution-no-mat
@@ -27,9 +61,9 @@ cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 
 
-#================================================
+#================================================================
 # Function definitions
-#================================================
+#================================================================
 
 # Retrieves a value from an ini file.
 # Trims trailing comments, spaces, and unwraps single quotes.
@@ -56,9 +90,9 @@ function get_localized_path {
 
 
 
-#================================================
+#================================================================
 # Config loading and validation
-#================================================
+#================================================================
 
 # Ensure a preset name was passed
 if [ $# -ne 1 ]; then
@@ -100,9 +134,9 @@ PlaceholderExt=".$(echo "$PlaceholderExt" | sed -e 's/^\.//')"
 
 
 
-#================================================
+#================================================================
 # Data gathering
-#================================================
+#================================================================
 
 # Enter the LibraryPath. We'll be resolving all paths from here onward.
 cd "$LibraryPath"
@@ -156,9 +190,9 @@ printf '%s\n' "${DATA_RAW[@]}"
 
 
 
-#================================================
+#================================================================
 # Writing files
-#================================================
+#================================================================
 
 # Reset the contents of the symlink database, or delete it if using placeholders
 # https://superuser.com/questions/90008/how-to-clear-the-contents-of-a-file-from-the-command-line
@@ -204,9 +238,9 @@ fi
 
 
 
-#================================================
+#================================================================
 # Cleanup
-#================================================
+#================================================================
 
 # Restore our initial working directory
 cd "$DIR_INIT"
