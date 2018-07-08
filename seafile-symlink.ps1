@@ -265,10 +265,10 @@ function Get-AbsoluteData ($Data) {
 function Get-UniqueData ($HashArray) {
     $HashArray | Select-Object @{
         Expression = { "$($_.Keys):$($_.Values)" }
-        Label ="AsString"
+        Label ='AsString'
     }, @{
         Expression ={$_}
-        Label = "Hash"
+        Label = 'Hash'
     } -Unique | Select-Object -ExpandProperty Hash
 }
 
@@ -400,11 +400,11 @@ function Get-DatabasePath ([string]$LibraryPath) {
 # Returns System.IO.FileSystemInfo of file at $Path, creating it if necessary
 function Get-File ([string]$Path) {
     if (Test-Path $Path) {
-        Write-Host "Found: $Path"
+        Write-Host 'Found:' $Path
         Get-Item -Path $Path
     } else {
-        Write-Host "Created: $Path"
-        New-Item -Path $Path -Type "file"
+        Write-Host 'Created:' $Path
+        New-Item -Path $Path -Type 'file'
     }
 }
 
@@ -454,7 +454,7 @@ function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$Conte
     $hasChanged = !$ContentOld -or @(Compare-Object $ContentOld $ContentNew -SyncWindow 0).Length -gt 0
 
     if ($hasChanged) {
-        New-Item -Path $Path -Type "file" -Value ($ContentNew -Join "`n") -Force | Out-Null
+        New-Item -Path $Path -Type 'file' -Value ($ContentNew -Join "`n") -Force | Out-Null
         Write-Host 'Updated:' $Path
     } else {
         Write-Host 'No changes required:' $Path
@@ -492,7 +492,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
     } elseif ($contentOld.Count -lt 1) {
 
         Remove-Item -Path $ignoreFile.FullName
-        Write-Host "Removed seafile-ignore.txt because it would be empty"
+        Write-Host 'Removed seafile-ignore.txt because it would be empty'
 
     }
 
@@ -532,7 +532,7 @@ function Remove-DatabaseFile ([string]$LibraryPath) {
     $databasePath = Get-DatabasePath $LibraryPath
     if (Test-Path $databasePath) {
         Remove-Item -Path $databasePath
-        Write-Host "Removed database: `"$databasePath`""
+        Write-Host 'Removed database:' $databasePath
     }
 }
 
