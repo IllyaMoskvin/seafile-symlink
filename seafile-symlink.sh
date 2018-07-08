@@ -64,15 +64,22 @@ PlaceholderExt="$(get_config_value 'PlaceholderExt')"
 # LibraryPath might be in Windows syntax.
 LibraryPath="$(get_localized_path "$LibraryPath")"
 
+# Ensure that LibraryPath exists
+if [ ! -d "$LibraryPath" ]; then
+    error_exit "Cannot resolve LibraryPath to a directory: $LibraryPath"
+fi
+
+# Ensure the storage method is valid
+if [ "$StorageMethod" != 'placeholder' ] && [ "$StorageMethod" != 'database' ] ; then
+    error_exit "Invalid StorageMethod: $StorageMethod"
+fi
+
+# Ensure PlaceholderExt starts with a period
+PlaceholderExt=".$(echo "$PlaceholderExt" | sed -e 's/^\.//')"
+
 echo $LibraryPath
 echo $StorageMethod
 echo $PlaceholderExt
-
-# Ensure that LibraryPath exists
-if [ ! -d "$LibraryPath" ]; then
-    echo 'Cannot resolve LibraryPath:' $LibraryPath
-    exit 1
-fi
 
 # Restore our initial working directory
 cd "$DIR_INIT"
