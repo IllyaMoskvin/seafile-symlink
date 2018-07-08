@@ -464,12 +464,6 @@ function Get-SeafileIgnoreFile ([string]$LibraryPath) {
 }
 
 
-# Returns System.IO.FileSystemInfo of seafile-symlink.txt, creating it if necessary
-function Get-DatabaseFile ([string]$LibraryPath) {
-    Get-File (Get-DatabasePath $LibraryPath)
-}
-
-
 # Used for padding output
 function Add-TrailingNewline ([string[]]$Lines) {
     if (($Lines.count -gt 0) -and (![string]::IsNullOrEmpty($Lines[-1]))) {
@@ -480,7 +474,7 @@ function Add-TrailingNewline ([string[]]$Lines) {
 
 
 # Write to file in $Path only if there are changes in content
-function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$ContentOld) {
+function Write-IfChanged ([string]$Path, [string[]]$ContentNew) {
 
     # Opinionated for our purpose - return early if there's nothing to write
     if ($ContentNew.Length -lt 1) {
@@ -488,25 +482,28 @@ function Write-IfChanged ([string]$Path, [string[]]$ContentNew, [string[]]$Conte
         return
     }
 
-    # If $ContentOld was omitted ($null), try getting the file contents
-    # This can happen if the file is empty, or if the last param was omitted
-    if (($null -eq $ContentOld) -and (Test-Path $Path)) {
-        $ContentOld = Get-Content $Path
+    # Get the file contents as string to preserve trailing newlines
+    if (Test-Path $Path) {
+        $ContentOld = Get-Content $Path -Raw
+    } else {
+        $ContentOld = ''
     }
 
-    if ($null -eq $ContentOld) {
+    if ($ContentOld.Length -eq 0) {
         Write-Host 'Appears empty:' $Path
     }
 
-    # Check if the original file was empty of if there were any changes
-    # https://stackoverflow.com/questions/9598173/comparing-array-variables-in-powershell
-    $hasChanged = !$ContentOld -or @(Compare-Object $ContentOld $ContentNew -SyncWindow 0).Length -gt 0
+    # Add trailing newline to our new content
+    $ContentNew = Add-TrailingNewline $ContentNew
 
-    if ($hasChanged) {
-        New-Item -Path $Path -Type 'file' -Value ($ContentNew -Join "`n") -Force | Out-Null
-        Write-Host 'Updated:' $Path
-    } else {
+    # Convert $ContentNew from [string[]] to [string]
+    [string]$ContentNew = $ContentNew -Join "`n"
+
+    if ($ContentNew -eq $ContentOld) {
         Write-Host 'No changes required:' $Path
+    } else {
+        New-Item -Path $Path -Type 'file' -Value $ContentNew -Force | Out-Null
+        Write-Host 'Updated:' $Path
     }
 }
 
@@ -526,17 +523,11 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
         # Ensure that a newline precedes the suffix
         $contentNew = Add-TrailingNewline $contentNew
 
-        # For comparison's sake, do the same to the source
-        $contentOld = Add-TrailingNewline $contentOld
-
         # Append the suffix header
         $contentNew = @($needle, '# Do not modify the line above or anything below it')
 
         # Append the ignore paths to our suffix
         $contentNew += $PathsToIgnore
-
-        # Add trailing newline after the suffix
-        $contentNew = Add-TrailingNewline $contentNew
 
     } elseif ($contentOld.Count -lt 1) {
 
@@ -545,7 +536,7 @@ function Write-SeafileIgnoreFile ([string]$LibraryPath, [string[]]$PathsToIgnore
 
     }
 
-    Write-IfChanged "$LibraryPath\seafile-ignore.txt" $contentNew $contentOld
+    Write-IfChanged "$LibraryPath\seafile-ignore.txt" $contentNew
 }
 
 
@@ -570,10 +561,7 @@ function Write-DatabaseFile ($Data, [string]$LibraryPath) {
         $linkPath + ' >>> ' + $destPath
     }
 
-    # Create the database file if it doesn't exist
-    $database = Get-DatabaseFile $LibraryPath
-
-    Write-IfChanged ($database.FullName) $contentNew (Get-Content $database)
+    Write-IfChanged (Get-DatabasePath $LibraryPath) $contentNew
 }
 
 
