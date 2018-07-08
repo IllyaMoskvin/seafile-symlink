@@ -136,6 +136,25 @@ The PowerShell version is pretty good about avoiding unnecessary file writes,
 but the bash version uses append liberally. This may trigger unnecessary but
 harmless syncs in Seafile.
 
+Lastly, if Seafile follows your symlinks and syncs them:
+
+1. Enable auto-sync
+2. Manually remove symlinks
+3. Allow Seafile time to sync the changes
+4. Disable auto-sync
+5. Follow the steps for creating symlinks above
+
+As mentioned, Seafile follows symlinks and sees them as actual files and
+directories. This tool adds symlinks to `seafile-ignore.txt` to prevent
+them from getting synced in the first place.
+
+However, when an item is added to `seafile-ignore.txt`, all that tells
+Seafile is that it should ignore any _subsequent_ changes made to it.
+Deleting an ignored file will not propogate the changes to the server.
+
+Thus, you must delete any synced symlinks before running this tool, and
+allow time for Seafile to sync the deletion. 
+
 
 
 # Limitations
