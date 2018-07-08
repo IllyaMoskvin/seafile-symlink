@@ -94,9 +94,26 @@ fi
 # Ensure PlaceholderExt starts with a period
 PlaceholderExt=".$(echo "$PlaceholderExt" | sed -e 's/^\.//')"
 
-echo $LibraryPath
-echo $StorageMethod
-echo $PlaceholderExt
+
+
+#================================================
+# Data gathering
+#================================================
+
+# Enter the LibraryPath. We'll be resolving all paths from here onward.
+cd "$LibraryPath"
+
+# We'll append data in database format to here, then process it later.
+DATA_RAW=()
+
+# Gather data from actual symlinks
+# https://stackoverflow.com/questions/22691436/unable-to-add-element-to-array-in-bash
+# https://stackoverflow.com/questions/2087001/how-can-i-process-the-results-of-find-in-a-bash-script
+while read linkPath; do
+    DATA_RAW+=("$linkPath >>> $(readlink "$linkPath")")
+done < <(find . -type l)
+
+printf '%s\n' "${DATA_RAW[@]}"
 
 
 
