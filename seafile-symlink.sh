@@ -197,6 +197,11 @@ do
     fi
 done
 
+# Remove placeholder files if they aren't being used
+if [ "$StorageMethod" != 'placeholder' ] ; then
+    find . -name "*$PlaceholderExt" | xargs rm
+fi
+
 
 
 #================================================
