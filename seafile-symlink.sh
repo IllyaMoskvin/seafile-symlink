@@ -262,19 +262,27 @@ do
     linkPath="$(awk -F ' >>> ' '{print $1}' <<< "$datum")"
     destPath="$(awk -F ' >>> ' '{print $2}' <<< "$datum")"
 
-    # Left-trims ./ to align w/ seafile-ignore.txt examples
-    linkPath="$(echo "$linkPath" | sed -e 's/^\.\///')"
-    destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
-
     # Business logic for normalizing absolute links
     # https://stackoverflow.com/a/28523143
     if [[ "$destPath" == /* ]] ; then
+        # Check if item falls inside library root
         if [[ "$destPath" == "$(pwd)"* ]] ; then
             tempPath="$destPath"
             destPath="$(realpath --relative-to="$LibraryPath" "$destPath")"
             echo "Converted absolute target: $tempPath >>> $destPath"
         fi
+    else
+        # Check if item falls outside library root
+        tempPath="$(realpath "$(dirname "$linkPath")/$destPath")"
+        if [[ "$tempPath" != "$(pwd)"* ]] ; then
+            echo "Converted relative target: $destPath >>> $tempPath"
+            destPath="$tempPath"
+        fi
     fi
+
+    # Left-trims ./ to align w/ seafile-ignore.txt examples
+    linkPath="$(echo "$linkPath" | sed -e 's/^\.\///')"
+    destPath="$(echo "$destPath" | sed -e 's/^\.\///')"
 
     # Append link path to seafile-ignore.txt
     # Determine if the link will point to a directory
