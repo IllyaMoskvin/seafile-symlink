@@ -374,12 +374,11 @@ function Get-PlaceholderPath ([string]$LinkPath, [string]$PlaceholderExt) {
 
 
 # Create a symlink placeholder file.
-# TODO: Don't re-create placeholders if they already exist with the same content? Avoid triggering sync.
 function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
     $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
     $normalizedDestPath = Get-NormalizedPath $DestPath
-    New-Item -Path $placeholderPath -Type "file" -Value $normalizedDestPath -Force | Out-Null
-    Write-Host "Created placeholder: `"$placeholderPath`" >>> `"$normalizedDestPath`""
+    Write-Host "Creating placeholder: `"$placeholderPath`" >>> `"$normalizedDestPath`""
+    Write-IfChanged $placeholderPath $normalizedDestPath
 }
 
 
