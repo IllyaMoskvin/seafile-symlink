@@ -126,6 +126,24 @@ while read placeholderPath; do
     DATA_RAW+=("$linkPath >>> $destPath")
 done < <(find . -name "*$PlaceholderExt")
 
+# Gather data from symlink database
+# https://stackoverflow.com/questions/5057083/read-a-file-using-a-bash-script
+if [ -f "seafile-symlink.txt" ]; then
+    while IFS= read -r datum; do
+        if [[ $datum = *' >>> '* ]]; then
+            # TODO: Refactor w/ reading in next section
+            linkPath="$(awk -F ' >>> ' '{print $1}' <<< "$datum")"
+            destPath="$(awk -F ' >>> ' '{print $2}' <<< "$datum")"
+
+            # Normalizes to unix convetion
+            linkPath="$(get_localized_path "$linkPath")"
+            destPath="$(get_localized_path "$destPath")"
+
+            DATA_RAW+=("$linkPath >>> $destPath")
+        fi
+    done < "seafile-symlink.txt"
+fi
+
 # Ensure the array is unique. Tried a few solutions...
 # https://stackoverflow.com/questions/13648410/how-can-i-get-unique-values-from-an-array-in-bash
 # https://www.linuxquestions.org/questions/programming-9/bash-combine-arrays-and-delete-duplicates-882286/
