@@ -126,6 +126,13 @@ while read placeholderPath; do
     DATA_RAW+=("$linkPath >>> $destPath")
 done < <(find . -name "*$PlaceholderExt")
 
+# Ensure the array is unique. Tried a few solutions...
+# https://stackoverflow.com/questions/13648410/how-can-i-get-unique-values-from-an-array-in-bash
+# https://www.linuxquestions.org/questions/programming-9/bash-combine-arrays-and-delete-duplicates-882286/
+OLDIFS="$IFS"
+IFS=$'\n'
+DATA_RAW=(`for i in "${DATA_RAW[@]}"; do echo "$i" ; done | sort -du`)
+IFS="$OLDIFS"
 
 printf '%s\n' "${DATA_RAW[@]}"
 
