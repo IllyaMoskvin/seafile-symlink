@@ -36,7 +36,21 @@ function Get-IniContent ([string]$FilePath) {
 
 # Given a preset name, load and validate its config file.
 function Get-Config ([string]$Preset) {
-    $config = Get-IniContent ($PSScriptRoot + '\presets\' + $Preset + '.ini')
+
+    # Unless an absolute path is provided, look in the `presets` directory
+    if (![System.IO.Path]::IsPathRooted($Preset)) {
+        if (!$Preset.EndsWith('.ini')) {
+            $Preset += '.ini'
+        }
+        $Preset = $PSScriptRoot + '\presets\' + $Preset
+    }
+
+    if (!(Test-Path $Preset)) {
+        Write-Host 'Config not found:' $Preset
+        exit 1
+    }
+
+    $config = Get-IniContent ($Preset)
 
     $keys = @('LibraryPath', 'StorageMethod', 'PlaceholderExt')
 
