@@ -37,9 +37,24 @@ LibraryPath=$(get_config_value 'LibraryPath')
 StorageMethod=$(get_config_value 'StorageMethod')
 PlaceholderExt=$(get_config_value 'PlaceholderExt')
 
+# Convert potentially Windows path to Unix
+# https://stackoverflow.com/questions/13701218/windows-path-to-posix-path-conversion-in-bash
+function get_localized_path {
+    echo "$1" | sed -E 's/^([A-Za-z]):/\\\1/' | sed 's/\\/\//g'
+}
+
+# LibraryPath might be in Windows syntax.
+LibraryPath="$(get_localized_path "$LibraryPath")"
+
 echo $LibraryPath
 echo $StorageMethod
 echo $PlaceholderExt
+
+# Ensure that LibraryPath exists
+if [ ! -d "$LibraryPath" ]; then
+    echo 'Cannot resolve LibraryPath:' $LibraryPath
+    exit 1
+fi
 
 # Restore our initial working directory
 cd "$DIR_INIT"
