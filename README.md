@@ -1,6 +1,6 @@
 # seafile-symlink
 
-As of July 2018 (v.6.1.1), Seafile still cannot sync symlinks natively. It
+As of July 2018 (v.6.1.8), Seafile still cannot sync symlinks natively. It
 follows them, and syncs them as if they were normal files and directories.
 In most cases, this is undesirable.
 
@@ -14,15 +14,15 @@ may need more work. PRs are welcome.
 
 Lastly, Seafile has a long-standing (5+ years) issue about symlinks:
 
-https://github.com/haiwen/seafile/issues/288 
+https://github.com/haiwen/seafile/issues/288
 
 Keep an eye on it for developments. It takes a lot more work to develop a
 backwards-compatible feature for a massive userbase than to whip up some
 shell scripts over the weekend. But if you're interested in seeing this
- solved properly, please head on over there, upvote the issue, and 
+solved properly, please head on over there, upvote the issue, and
 contribute to the conversation.
 
-In the meantime, I hope these scripts help your workflow. 
+In the meantime, I hope these scripts help your workflow.
 
 
 
@@ -30,7 +30,7 @@ In the meantime, I hope these scripts help your workflow.
 
 There are two scripts included with this repository: PowerShell and bash.
 
-[seafile-symlink.ps1](seafile-symlink.ps1) was developed on Windows 7 SP3
+[seafile-symlink.ps1](seafile-symlink.ps1) was developed on Windows 7 SP1
 with PowerShell 5.0.
 
 [seafile-symlink.sh](seafile-symlink.sh) was developed on macOS 10.12.6
@@ -69,7 +69,7 @@ PlaceholderExt='seaflnk'    ; Only applies if using placeholders
 By default, `LibraryPath` assumes that the `seafile-symlink` directory is
 a first-level subdirectory of a library.
 
-The `StorageMethod` indicates whether to use `placeholder` files or a 
+The `StorageMethod` indicates whether to use `placeholder` files or a
 single `database` text file to track symlinks.
 
 Placeholders offer potentially better preservation of relative symlinks
@@ -153,7 +153,7 @@ Seafile is that it should ignore any _subsequent_ changes made to it.
 Deleting an ignored file will not propogate the changes to the server.
 
 Thus, you must delete any synced symlinks before running this tool, and
-allow time for Seafile to sync the deletion. 
+allow time for Seafile to sync the deletion.
 
 
 
@@ -179,7 +179,7 @@ Symlinks pointing to network locations are unsupported.
 
 Symlinks pointing to other drives are untested.
 
-Symlinks that contain the `~` home path in their target are untested. 
+Symlinks that contain the `~` home path in their target are untested.
 
 Absolute paths might get sketchy when transferred cross-platform.
 
