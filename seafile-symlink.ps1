@@ -142,11 +142,13 @@ function Get-NonsymbolicPaths {
         # Convert param list to hash
         $params = Get-ParamHash $ParamArray
 
+        $DirPathEncoded = $DirPath.replace('[', '``[').replace(']', '``]')
+
         # Get symbolic links located directly within this directory
-        $links = @(Get-ChildItem -Path "$DirPath\*" @params | ForEach-Object { $_.FullName })
+        $links = @(Get-ChildItem -Path "$DirPathEncoded\*" @params | ForEach-Object { $_.FullName })
 
         # Get all subdirectories, excluding symbolic links
-        $subdirs = @(Get-ChildItem -Path $DirPath -Attributes Directory+!ReparsePoint)
+        $subdirs = @(Get-ChildItem -LiteralPath $DirPath -Attributes Directory+!ReparsePoint)
 
         # Call this function on each subdirectory and append the result
         foreach ($subdir in $subdirs) {
@@ -172,7 +174,7 @@ function Get-PlaceholderPaths ([string]$DirPath, [string]$PlaceholderExt) {
 
 
 function Test-IsDirectory ([string]$Path) {
-    (Get-Item -Path $Path) -is [System.IO.DirectoryInfo]
+    (Get-Item -LiteralPath $Path) -is [System.IO.DirectoryInfo]
 }
 
 
