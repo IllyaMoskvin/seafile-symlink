@@ -142,7 +142,7 @@ function Get-NonsymbolicPaths {
         # Convert param list to hash
         $params = Get-ParamHash $ParamArray
 
-        $DirPathEncoded = $DirPath.replace('[', '``[').replace(']', '``]')
+        $DirPathEncoded = $DirPath.replace('[', "``[").replace(']', "``]")
 
         # Get symbolic links located directly within this directory
         $links = @(Get-ChildItem -Path "$DirPathEncoded\*" @params | ForEach-Object { $_.FullName })
