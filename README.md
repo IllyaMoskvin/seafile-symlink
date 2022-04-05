@@ -1,5 +1,7 @@
 # seafile-symlink
 
+> Utility to help sync and restore symlinks in Seafile.
+
 As of July 2018 (v.6.1.8), Seafile still cannot sync symlinks natively. It
 follows them, and syncs them as if they were normal files and directories.
 In most cases, this is undesirable.
