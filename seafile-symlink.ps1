@@ -142,11 +142,13 @@ function Get-NonsymbolicPaths {
         # Convert param list to hash
         $params = Get-ParamHash $ParamArray
 
+        $DirPathEncoded = $DirPath.replace('[', "``[").replace(']', "``]")
+
         # Get symbolic links located directly within this directory
-        $links = @(Get-ChildItem -Path "$DirPath\*" @params | ForEach-Object { $_.FullName })
+        $links = @(Get-ChildItem -Path "$DirPathEncoded\*" @params | ForEach-Object { $_.FullName })
 
         # Get all subdirectories, excluding symbolic links
-        $subdirs = @(Get-ChildItem -Path $DirPath -Attributes Directory+!ReparsePoint)
+        $subdirs = @(Get-ChildItem -LiteralPath $DirPath -Attributes Directory+!ReparsePoint)
 
         # Call this function on each subdirectory and append the result
         foreach ($subdir in $subdirs) {
@@ -172,7 +174,7 @@ function Get-PlaceholderPaths ([string]$DirPath, [string]$PlaceholderExt) {
 
 
 function Test-IsDirectory ([string]$Path) {
-    (Get-Item -Path $Path) -is [System.IO.DirectoryInfo]
+    (Get-Item -LiteralPath $Path) -is [System.IO.DirectoryInfo]
 }
 
 
@@ -190,8 +192,8 @@ function Assert-IsDirectory ([string]$DirPath, [string]$Param) {
 # https://stackoverflow.com/questions/3038337/powershell-resolve-path-that-might-not-exist
 function Get-RelativePath ([string]$Path, [string]$DirPath) {
     Assert-IsDirectory $DirPath 'DirPath'
-    Push-Location -Path $DirPath
-    $out = Resolve-Path $Path -Relative -ErrorAction 'SilentlyContinue' -ErrorVariable '_frperror'
+    Push-Location -LiteralPath $DirPath
+    $out = Resolve-Path -LiteralPath $Path -Relative -ErrorAction 'SilentlyContinue' -ErrorVariable '_frperror'
     if (-not($out)) {
         $out = $_frperror[0].TargetObject
     }
@@ -278,7 +280,7 @@ function Get-SymbolicLinkRawData ([string]$LibraryPath) {
     Get-SymbolicLinkPaths $LibraryPath | ForEach-Object {
         @{
             LinkPath = $_
-            DestPath = Get-Item -Path $_ | Select-Object -ExpandProperty Target
+            DestPath = Get-Item -LiteralPath $_ | Select-Object -ExpandProperty Target
         }
     }
 }
@@ -399,7 +401,7 @@ function New-SymbolicLink ([string]$LinkPath, [string]$DestPath, [string]$Librar
     $DestPath = Get-BusinessDestPath $LinkPath $DestPath $LibraryPath
 
     # We need to enter the folder where the symlink will be located for any relative paths to resolve
-    Push-Location -Path (Get-LinkParentPath $LinkPath)
+    Push-Location -LiteralPath (Get-LinkParentPath $LinkPath)
 
     # https://stackoverflow.com/questions/894430/creating-hard-and-soft-links-using-powershell
     New-Item -Path $LinkPath -ItemType SymbolicLink -Value $DestPath -Force | Out-Null
@@ -434,7 +436,7 @@ function New-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$Placeho
 # Expects both $LinkPath and $DestPath for splatting convenience, but only needs the former.
 function Remove-Placeholder ([string]$LinkPath, [string]$DestPath, [string]$PlaceholderExt) {
     $placeholderPath = Get-PlaceholderPath $LinkPath $PlaceholderExt
-    if (Test-Path $placeholderPath) {
+    if (Test-Path -LiteralPath $placeholderPath) {
         Remove-Item -Path $placeholderPath
         Write-Host "Removed placeholder: `"$placeholderPath`""
     }
